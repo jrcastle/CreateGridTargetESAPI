@@ -1,0 +1,189 @@
+﻿<UserControl x:Class="CreateGRIDTarget.CreateGRIDTargetUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="400" d:DesignWidth="900"
+             Background="#fafafa" >
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0">
+            <Image Source="pack://application:,,,/CreateGRIDTarget.esapi;component/Resources/Logo.png" 
+               Height="75"
+               />
+        </StackPanel>
+        <StackPanel Margin="10" Grid.Row="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="450"></ColumnDefinition>
+                    <ColumnDefinition Width="390"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="205"></RowDefinition>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Grid.Column="0">
+                    <Label VerticalAlignment="Top" FontWeight="Bold" HorizontalAlignment="Left">Configuration</Label>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"></ColumnDefinition>
+                            <ColumnDefinition Width="300"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Select GTV Structure:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1">
+                            <ComboBox x:Name="ComboBoxGTVList" Margin="15 0" Height="25" Width="195" ItemsSource="{Binding structureList}" SelectionChanged = "GTVSelectionChanged" HorizontalAlignment="Left"  VerticalAlignment="Center"></ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Diameter of Grid:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="1">
+                            <TextBox x:Name="TextBox_GridDiameter" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" TextChanged="TextBox_GridDiameter_Changed"></TextBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="1">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Separation of Grid:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="1">
+                            <TextBox x:Name="TextBox_GridSeparation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" TextChanged="TextBox_GridSeparation_Changed"></TextBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="1">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">GTV Erode Margin:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85"></ColumnDefinition>
+                                    <ColumnDefinition Width="75"></ColumnDefinition>
+                                    <ColumnDefinition Width="100"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <Label VerticalAlignment="Top" Margin="11 0" HorizontalAlignment="Left">X:</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="0">
+                                    <TextBox x:Name="TextBox_GTVErodeMarginX" Margin="26 0" Height="25" Width="30" HorizontalAlignment="Left" TextChanged="TextBox_GTVErodeMarginX_Changed"></TextBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="0">
+                                    <Label VerticalAlignment="Top" Margin="52,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">Y:</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBox x:Name="TextBox_GTVErodeMarginY" Margin="15 0" Height="25" Width="30" HorizontalAlignment="Left" TextChanged="TextBox_GTVErodeMarginY_Changed"></TextBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <Label VerticalAlignment="Top" Margin="41,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">Z:</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBox x:Name="TextBox_GTVErodeMarginZ" Margin="15 0" Height="25" Width="30" HorizontalAlignment="Left" TextChanged="TextBox_GTVErodeMarginZ_Changed"></TextBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <Label VerticalAlignment="Top" Margin="41,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Grid Pattern Rotation:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="1">
+                            <TextBox x:Name="TextBox_GridRotation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" TextChanged="TextBox_GridRotation_Changed"></TextBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="1">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Left" Width="100" Margin="89 0">Degrees</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="10" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Grid Pattern Shift:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="10" Grid.Column="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85"></ColumnDefinition>
+                                    <ColumnDefinition Width="75"></ColumnDefinition>
+                                    <ColumnDefinition Width="100"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <Label VerticalAlignment="Top" Margin="11 0" HorizontalAlignment="Left">X:</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="0">
+                                    <TextBox x:Name="TextBox_GridShiftX" Margin="26 0" Height="25" Width="30" HorizontalAlignment="Left" TextChanged="TextBox_GridShiftX_Changed"></TextBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="0">
+                                    <Label VerticalAlignment="Top" Margin="52,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">Z:</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBox x:Name="TextBox_GridShiftZ" Margin="15 0" Height="25" Width="30" HorizontalAlignment="Left" TextChanged="TextBox_GridShiftZ_Changed"></TextBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <Label VerticalAlignment="Top" Margin="41,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+                <StackPanel Grid.Row="0" Grid.Column="1">
+                    <Label Grid.Row="0" FontWeight="Bold" Margin="0 0 0 0">Messages</Label>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" x:Name="test">
+                    <Border Grid.Row="1" BorderThickness="1" BorderBrush="Black" Margin="0 0 0 0">
+                        <ScrollViewer Height="200">
+                            <TextBlock x:Name="messageTextBlock" TextWrapping="Wrap"></TextBlock>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+        <StackPanel Grid.Row="2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="450"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Button x:Name="runButton" Width="50" Margin="15 0 5 0" Click="RunButton_Click" IsDefault="True" IsEnabled="False" Height="20">Run</Button>
+                    <Button x:Name="abortButton" Width="50" Margin="5" Click="AbortButton_Click" IsDefault="True" IsEnabled="False" Height="20">Abort</Button>
+                    <Button x:Name="clearButton" Width="100" Margin="5 0 0 0" Click="ClearButton_Click" IsDefault="True" IsEnabled="True" Height="20">Clear Messages</Button>
+                    <Button x:Name="closeButton" Width="50" Margin="5" Click="CloseButton_Click" IsDefault="True" IsEnabled="True" Height="20">Close</Button>
+                    <ProgressBar x:Name="progressBar" Minimum="0" Maximum="100" Value="0" Width="100" Height="10" Margin="10"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <Label HorizontalAlignment="Right" VerticalAlignment="Center">v1.0.0</Label>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</UserControl>
