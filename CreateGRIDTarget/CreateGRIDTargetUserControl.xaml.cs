@@ -48,6 +48,13 @@ namespace CreateGRIDTarget
         {
             InitializeComponent();
 
+            // Initialize parameters, but don't update UI
+            // CheckRunIsReady will look for these values specifically
+            // To know if it should enable the run button or not
+            gridDiameter = 8675309;
+            gridSeparation = 8675309;
+            gridRotationDegrees = 8675309;
+
             // Initialize margin/shift lists
             gtvErodeMarginXYZ = new List<float>();
             gridPatternShiftXZ = new List<float>();
@@ -100,6 +107,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gridDiameter = 8675309;
                 message += "Grid diameter input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -118,6 +126,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gridSeparation = 8675309;
                 message += "Grid separation input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -136,6 +145,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gtvErodeMarginXYZ[0] = 8675309;
                 message += "X erosion margin input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -154,6 +164,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gtvErodeMarginXYZ[1] = 8675309;
                 message += "Y erosion margin input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -172,6 +183,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gtvErodeMarginXYZ[2] = 8675309;
                 message += "Z erosion margin input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -190,6 +202,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gridRotationDegrees = 8675309;
                 message += "Grid rotation input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -208,6 +221,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gridPatternShiftXZ[0] = 8675309;
                 message += "X pattern shift input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -226,6 +240,7 @@ namespace CreateGRIDTarget
             }
             catch
             {
+                gridPatternShiftXZ[1] = 8675309;
                 message += "Z pattern shift input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -289,6 +304,14 @@ namespace CreateGRIDTarget
             bool ready = true;
             try
             {
+                if (gridDiameter == 8675309) ready = false;
+                if (gridSeparation == 8675309) ready = false;
+                if (gridRotationDegrees == 8675309) ready = false;
+                for (int i = 0; i < 3; i++)
+                {
+                    if (gtvErodeMarginXYZ[i] == 8675309) ready = false;
+                    if (i < 2 && gridPatternShiftXZ[i] == 8675309) ready = false;
+                }
                 if (structureList.Contains(gtvStructureName))
                 {
                     ready = false;
