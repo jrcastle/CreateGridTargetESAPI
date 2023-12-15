@@ -18,6 +18,7 @@ using System.Globalization;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Runtime;
+using VMS.TPS.Common.Model.API;
 
 namespace CreateGRIDTarget
 {
@@ -39,14 +40,17 @@ namespace CreateGRIDTarget
         public List<float> gridPatternShiftXZ;
         public CancellationTokenSource cancellationToken { get; set; }
 
+
         ////////////////////////////////////////////////
-        // CONSTRUCTOR
+        // CONSTRUCTOR 
         ////////////////////////////////////////////////
-        public CreateGRIDTargetUserControl()
+        public CreateGRIDTargetUserControl(PlanSetup plan, VMS.TPS.Common.Model.API.Image CT, StructureSet struct_set)
         {
             InitializeComponent();
 
             // Initialize margin/shift lists
+            gtvErodeMarginXYZ = new List<float>();
+            gridPatternShiftXZ = new List<float>();
             for (int i = 0; i < 3; i++)
             {
                 gtvErodeMarginXYZ.Add(0);
@@ -96,7 +100,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "Grid diameter input needs to be a number.";
+                message += "Grid diameter input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -113,7 +118,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "Grid separation input needs to be a number.";
+                message += "Grid separation input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -130,7 +136,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "X erosion margin input needs to be a number.";
+                message += "X erosion margin input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -147,7 +154,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "Y erosion margin input needs to be a number.";
+                message += "Y erosion margin input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -164,7 +172,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "Z erosion margin input needs to be a number.";
+                message += "Z erosion margin input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -181,7 +190,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "Grid rotation input needs to be a number.";
+                message += "Grid rotation input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -198,7 +208,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "X pattern shift input needs to be a number.";
+                message += "X pattern shift input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -215,7 +226,8 @@ namespace CreateGRIDTarget
             }
             catch
             {
-                message += "Z pattern shift input needs to be a number.";
+                message += "Z pattern shift input needs to be a number.\n";
+                messageTextBlock.Text = message;
             }
             CheckRunIsReady();
         }
@@ -277,17 +289,22 @@ namespace CreateGRIDTarget
             bool ready = true;
             try
             {
-                if (structureList.Contains(gtvStructureName)) ready = false;
+                if (structureList.Contains(gtvStructureName))
+                {
+                    ready = false;
+                    message += "GTV structure not found.\n";
+                    messageTextBlock.Text = message;
+                }
                 if (gridDiameter < 0)
                 {
                     ready = false;
-                    message += "Cannot have negative Grid Diameter";
+                    message += "Cannot have negative Grid Diameter.\n";
                     messageTextBlock.Text = message;
                 }
                 if (gridSeparation < 0)
                 {
                     ready = false;
-                    message += "Cannot have negative Grid Separation";
+                    message += "Cannot have negative Grid Separation.\n";
                     messageTextBlock.Text = message;
                 }
             }
