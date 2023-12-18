@@ -30,30 +30,41 @@ namespace CreateGRIDTarget
         ////////////////////////////////////////////////
         // CLASS MEMBERS
         ////////////////////////////////////////////////
-        public string message = "";
+        public string message { get; set; }
         ObservableCollection<string> structureList { get; set; }
-        public string gtvStructureName;
-        public float gridDiameter;
-        public float gridSeparation;
-        public float gridRotationDegrees;
-        public List<float> gtvErodeMarginXYZ;
-        public List<float> gridPatternShiftXZ;
+        public string gtvStructureName { get; set; }
+        public float gridDiameter { get; set; }
+        public float gridSeparation { get; set; }
+        public float gridRotationDegrees { get; set; }
+        public List<float> gtvErodeMarginXYZ { get; set; }
+        public List<float> gridPatternShiftXZ { get; set; }
         public CancellationTokenSource cancellationToken { get; set; }
+        public PlanSetup plan { get; set; }
+        public VMS.TPS.Common.Model.API.Image CT { get; set; }
+        public StructureSet struct_set { get; set; }
 
 
         ////////////////////////////////////////////////
         // CONSTRUCTOR 
         ////////////////////////////////////////////////
-        public CreateGRIDTargetUserControl(PlanSetup plan, VMS.TPS.Common.Model.API.Image CT, StructureSet struct_set)
+        public CreateGRIDTargetUserControl(PlanSetup p, VMS.TPS.Common.Model.API.Image img, StructureSet ss)
         {
             InitializeComponent();
+
+            // Initialize class members for plan, ct, and structure set
+            plan = p;
+            CT = img;
+            struct_set = ss;
+
+            // Blank message to start
+            message = "";
 
             // Initialize parameters, but don't update UI
             // CheckRunIsReady will look for these values specifically
             // To know if it should enable the run button or not
             gridDiameter = 8675309;
             gridSeparation = 8675309;
-            gridRotationDegrees = 8675309;
+            
 
             // Initialize margin/shift lists
             gtvErodeMarginXYZ = new List<float>();
@@ -68,16 +79,19 @@ namespace CreateGRIDTarget
             TextBox_GTVErodeMarginX.Text = "0";
             TextBox_GTVErodeMarginY.Text = "0";
             TextBox_GTVErodeMarginZ.Text = "0";
-            TextBox_GridRotation.Text = "0";
             TextBox_GridShiftX.Text = "0";
             TextBox_GridShiftZ.Text = "0";
 
+            gridRotationDegrees = 0;
+            TextBox_GridRotation.Text = "0";
+
             // Make list of structures for dropdown
             structureList = new ObservableCollection<string>();
-            //for loop
-            // structureList.Add()
-            //ComboBoxGTVList.ItemsSource = structureList;
-
+            foreach (var s in struct_set.Structures)
+            {
+                structureList.Add(s.Id.ToString());
+            }
+            ComboBoxGTVList.ItemsSource = structureList;
             this.DataContext = this;
 
             // Add closing event
@@ -249,16 +263,6 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // RunButton_Click
-        ////////////////////////////////////////////////
-        private void RunButton_Click(object sender, RoutedEventArgs e)
-        {
-            cancellationToken = new CancellationTokenSource();
-            CreateGRIDTarget(cancellationToken.Token);
-        }
-
-
-        ////////////////////////////////////////////////
         // AbortButton_Click
         ////////////////////////////////////////////////
         private void AbortButton_Click(object sender, RoutedEventArgs e)
@@ -312,10 +316,10 @@ namespace CreateGRIDTarget
                     if (gtvErodeMarginXYZ[i] == 8675309) ready = false;
                     if (i < 2 && gridPatternShiftXZ[i] == 8675309) ready = false;
                 }
-                if (structureList.Contains(gtvStructureName))
+                if (!structureList.Contains(gtvStructureName))
                 {
                     ready = false;
-                    message += "GTV structure not found.\n";
+                    message += "Structure \"" + gtvStructureName.ToString() + "\" not found in structure set.\n";
                     messageTextBlock.Text = message;
                 }
                 if (gridDiameter < 0)
@@ -365,11 +369,56 @@ namespace CreateGRIDTarget
             }
         }
 
+
+        ////////////////////////////////////////////////
+        // RunButton_Click
+        ////////////////////////////////////////////////
+        private void RunButton_Click(object sender, RoutedEventArgs e)
+        {
+            cancellationToken = new CancellationTokenSource();
+            CreateGRIDTarget(cancellationToken.Token);
+        }
+
+
         ///////////////////////////////////////////////////////////
-        // OnClosing
+        // CreateGRIDTarget
         ///////////////////////////////////////////////////////////
         private async void CreateGRIDTarget(CancellationToken token)
         {
+            // Might need to wrap the funtion with this in the future:
+            //await Task.Factory.StartNew(async () =>
+            //{
+            //});
+
+            token.ThrowIfCancellationRequested();
+            this.Dispatcher.Invoke(() =>
+            {
+                runButton.IsEnabled = false;
+                abortButton.IsEnabled = true;
+                message += "Reading GTV from structure set ...";
+                messageTextBlock.Text = message;
+                progressBar.Value = 1;
+            });
+
+            var gtv = struct_set.Structures.First(x => x.Id == gtvStructureName);
+            var slice = gtv.GetContoursOnImagePlane(55);
+            this.Dispatcher.Invoke(() =>
+            {
+                message += slice.ToString() + "\n";
+                messageTextBlock.Text = message;
+            });
+
+            // Get image dimensions/coordinates
+            List<int> ct_size = new List<int>() { CT.XSize, CT.YSize, CT.ZSize };
+            List<float> ct_spacing = new List<float>() { (float)CT.XRes, (float)CT.YRes, (float)CT.ZRes };
+
+            // Script complete
+            this.Dispatcher.Invoke(() =>
+            {
+                runButton.IsEnabled = true;
+                abortButton.IsEnabled = false;
+                progressBar.Value = 100;
+            });
         }
 
     }

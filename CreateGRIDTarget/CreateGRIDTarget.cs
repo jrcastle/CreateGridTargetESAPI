@@ -30,6 +30,7 @@ namespace VMS.TPS
             catch
             {
                 DialogResult result = ThrowPatientLoadError();
+                window.Close();
                 return;
             }
 
@@ -37,11 +38,12 @@ namespace VMS.TPS
             try
             {
                 CT = context.Image;
-                string name = CT.Name; // If no CT loaded, this triggers the error.
+                string name = CT.Name; // If no CT loaded, this triggers an error.
             }
             catch
             {
                 DialogResult result = ThrowPatientLoadError();
+                window.Close();
                 return;
             }
 
@@ -49,14 +51,14 @@ namespace VMS.TPS
             try
             {
                 struct_set = context.StructureSet;
-                string name = struct_set.Name; // If no structure set loaded loaded, this triggers the error.
+                string name = struct_set.Name; // If no structure set loaded loaded, this triggers an error.
             }
             catch
             {
                 DialogResult result = ThrowPatientLoadError();
+                window.Close();
                 return;
             }
-
 
             //----- Step 4: Load UI -----\\
             window.Title = "Lattice Therapy";
