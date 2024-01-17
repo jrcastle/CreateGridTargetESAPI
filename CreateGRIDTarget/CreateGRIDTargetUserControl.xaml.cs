@@ -18,10 +18,21 @@ using System.Globalization;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Runtime;
+using MathNet.Numerics.LinearAlgebra;
 using VMS.TPS.Common.Model.API;
 
 namespace CreateGRIDTarget
 {
+    ////////////////////////////////////////////////
+    // LatticeCylinder
+    ////////////////////////////////////////////////
+    public class LatticeCylinder
+    {
+        public Vector<double> orientation { get; set; }
+        public double radius { get; set; }
+        public double separation { get; set; }
+    }
+
     ////////////////////////////////////////////////
     // CreateGRIDTargetUserControl 
     ////////////////////////////////////////////////
@@ -33,11 +44,11 @@ namespace CreateGRIDTarget
         public string message { get; set; }
         ObservableCollection<string> structureList { get; set; }
         public string gtvStructureName { get; set; }
-        public float gridDiameter { get; set; }
-        public float gridSeparation { get; set; }
+        public float latticeDiameter { get; set; }
+        public float latticeSeparation { get; set; }
         public float gridRotationDegrees { get; set; }
         public List<float> gtvErodeMarginXYZ { get; set; }
-        public List<float> gridPatternShiftXZ { get; set; }
+        public List<float> latticePatternShiftXZ { get; set; }
         public CancellationTokenSource cancellationToken { get; set; }
         public PlanSetup plan { get; set; }
         public VMS.TPS.Common.Model.API.Image CT { get; set; }
@@ -62,28 +73,28 @@ namespace CreateGRIDTarget
             // Initialize parameters, but don't update UI
             // CheckRunIsReady will look for these values specifically
             // To know if it should enable the run button or not
-            gridDiameter = 8675309;
-            gridSeparation = 8675309;
+            latticeDiameter = 8675309;
+            latticeSeparation = 8675309;
             
 
             // Initialize margin/shift lists
             gtvErodeMarginXYZ = new List<float>();
-            gridPatternShiftXZ = new List<float>();
+            latticePatternShiftXZ = new List<float>();
             for (int i = 0; i < 3; i++)
             {
                 gtvErodeMarginXYZ.Add(0);
-                if (i < 2) gridPatternShiftXZ.Add(0);
+                if (i < 2) latticePatternShiftXZ.Add(0);
             }
 
             // Make default values of 0 for margins, shifts, and rotation
             TextBox_GTVErodeMarginX.Text = "0";
             TextBox_GTVErodeMarginY.Text = "0";
             TextBox_GTVErodeMarginZ.Text = "0";
-            TextBox_GridShiftX.Text = "0";
-            TextBox_GridShiftZ.Text = "0";
+            TextBox_LatticeShiftX.Text = "0";
+            TextBox_LatticeShiftZ.Text = "0";
 
             gridRotationDegrees = 0;
-            TextBox_GridRotation.Text = "0";
+            TextBox_LatticeRotation.Text = "0";
 
             // Make list of structures for dropdown
             structureList = new ObservableCollection<string>();
@@ -111,17 +122,17 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // TextBox_GridDiameter_Changed
+        // TextBox_LatticeDiameter_Changed
         ////////////////////////////////////////////////
-        private void TextBox_GridDiameter_Changed(object sender, RoutedEventArgs e)
+        private void TextBox_LatticeDiameter_Changed(object sender, RoutedEventArgs e)
         {
             try
             {
-                gridDiameter = float.Parse(TextBox_GridDiameter.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                latticeDiameter = float.Parse(TextBox_LatticeDiameter.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
             }
             catch
             {
-                gridDiameter = 8675309;
+                latticeDiameter = 8675309;
                 message += "Grid diameter input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -130,17 +141,17 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // TextBox_GridSeparation_Changed
+        // TextBox_LatticeSeparation_Changed
         ////////////////////////////////////////////////
-        private void TextBox_GridSeparation_Changed(object sender, RoutedEventArgs e)
+        private void TextBox_LatticeSeparation_Changed(object sender, RoutedEventArgs e)
         {
             try
             {
-                gridSeparation = float.Parse(TextBox_GridSeparation.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                latticeSeparation = float.Parse(TextBox_LatticeSeparation.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
             }
             catch
             {
-                gridSeparation = 8675309;
+                latticeSeparation = 8675309;
                 message += "Grid separation input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -206,18 +217,18 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // TextBox_GridRotation_Changed
+        // TextBox_LatticeRotation_Changed
         ////////////////////////////////////////////////
-        private void TextBox_GridRotation_Changed(object sender, RoutedEventArgs e)
+        private void TextBox_LatticeRotation_Changed(object sender, RoutedEventArgs e)
         {
             try
             {
-                gridRotationDegrees = float.Parse(TextBox_GridRotation.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                gridRotationDegrees = float.Parse(TextBox_LatticeRotation.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
             }
             catch
             {
                 gridRotationDegrees = 8675309;
-                message += "Grid rotation input needs to be a number.\n";
+                message += "Lattice rotation input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
             CheckRunIsReady();
@@ -225,17 +236,17 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // TextBox_GridShiftX_Changed
+        // TextBox_LatticeShiftX_Changed
         ////////////////////////////////////////////////
-        private void TextBox_GridShiftX_Changed(object sender, RoutedEventArgs e)
+        private void TextBox_LatticeShiftX_Changed(object sender, RoutedEventArgs e)
         {
             try
             {
-                gridPatternShiftXZ[0] = float.Parse(TextBox_GridShiftX.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                latticePatternShiftXZ[0] = float.Parse(TextBox_LatticeShiftX.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
             }
             catch
             {
-                gridPatternShiftXZ[0] = 8675309;
+                latticePatternShiftXZ[0] = 8675309;
                 message += "X pattern shift input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -244,17 +255,17 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // TextBox_GridShiftZ_Changed
+        // TextBox_LatticeShiftZ_Changed
         ////////////////////////////////////////////////
-        private void TextBox_GridShiftZ_Changed(object sender, RoutedEventArgs e)
+        private void TextBox_LatticeShiftZ_Changed(object sender, RoutedEventArgs e)
         {
             try
             {
-                gridPatternShiftXZ[1] = float.Parse(TextBox_GridShiftZ.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                latticePatternShiftXZ[1] = float.Parse(TextBox_LatticeShiftZ.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
             }
             catch
             {
-                gridPatternShiftXZ[1] = 8675309;
+                latticePatternShiftXZ[1] = 8675309;
                 message += "Z pattern shift input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -308,13 +319,13 @@ namespace CreateGRIDTarget
             bool ready = true;
             try
             {
-                if (gridDiameter == 8675309) ready = false;
-                if (gridSeparation == 8675309) ready = false;
+                if (latticeDiameter == 8675309) ready = false;
+                if (latticeSeparation == 8675309) ready = false;
                 if (gridRotationDegrees == 8675309) ready = false;
                 for (int i = 0; i < 3; i++)
                 {
                     if (gtvErodeMarginXYZ[i] == 8675309) ready = false;
-                    if (i < 2 && gridPatternShiftXZ[i] == 8675309) ready = false;
+                    if (i < 2 && latticePatternShiftXZ[i] == 8675309) ready = false;
                 }
                 if (!structureList.Contains(gtvStructureName))
                 {
@@ -322,13 +333,13 @@ namespace CreateGRIDTarget
                     message += "Structure \"" + gtvStructureName.ToString() + "\" not found in structure set.\n";
                     messageTextBlock.Text = message;
                 }
-                if (gridDiameter < 0)
+                if (latticeDiameter < 0)
                 {
                     ready = false;
                     message += "Cannot have negative Grid Diameter.\n";
                     messageTextBlock.Text = message;
                 }
-                if (gridSeparation < 0)
+                if (latticeSeparation < 0)
                 {
                     ready = false;
                     message += "Cannot have negative Grid Separation.\n";
@@ -395,30 +406,220 @@ namespace CreateGRIDTarget
             {
                 runButton.IsEnabled = false;
                 abortButton.IsEnabled = true;
-                message += "Reading GTV from structure set ...";
+                message += "Reading GTV from structure set ...\n";
                 messageTextBlock.Text = message;
                 progressBar.Value = 1;
             });
 
+
+            // Get GTV
             var gtv = struct_set.Structures.First(x => x.Id == gtvStructureName);
-            var slice = gtv.GetContoursOnImagePlane(55);
-            this.Dispatcher.Invoke(() =>
+
+            // Get the list of slices spanning the GTV
+            IEnumerable<int> slices = GetMeshBounds(gtv, struct_set);
+
+            // Establish bounding box parameters
+            var bounding_box = gtv.MeshGeometry.Bounds;
+
+            double[] bb_start_coord = {
+                bounding_box.X,
+                bounding_box.Y,
+                bounding_box.Z
+            };
+
+            double[] bb_end_coord = {
+                bounding_box.X + bounding_box.SizeX,
+                bounding_box.Y + bounding_box.SizeY,
+                bounding_box.Z + bounding_box.SizeZ
+            };
+
+            double[] bb_spacing_coord = {
+                struct_set.Image.XRes,
+                struct_set.Image.YRes,
+                struct_set.Image.ZRes
+            };
+
+            double[] bb_size_coord = {
+                bounding_box.SizeX,
+                bounding_box.SizeY,
+                bounding_box.SizeZ
+            };
+
+            double[] bb_center_coord = new double[3];
+            for (int i = 0; i < 3; i++) bb_center_coord[i] = (bb_start_coord[i] + bb_end_coord[i]) / 2.0;
+
+            // Create Cylinder object and orient Cylinder direction based on largest dimension of bounding box
+            LatticeCylinder cyl = new LatticeCylinder();
+            cyl.radius = latticeDiameter / 2.0;
+            cyl.separation = latticeSeparation;
+            if (bb_size_coord[0] > bb_size_coord[1] && bb_size_coord[0] > bb_size_coord[2])
+                cyl.orientation = Vector<double>.Build.DenseOfArray(new double[] { 1, 0 ,0 });
+            else if (bb_size_coord[1] > bb_size_coord[0] && bb_size_coord[1] > bb_size_coord[2])
+                cyl.orientation = cyl.orientation = Vector<double>.Build.DenseOfArray(new double[] { 0, 1, 0 });
+            else
+                cyl.orientation = cyl.orientation = Vector<double>.Build.DenseOfArray(new double[] { 0, 0, 1 });
+
+
+            // Loop slice-by-slice
+            int N_pts = 25;
+            List<List<double>> rod_points_list = new List<List<double>>();            
+            for (double z = bb_start_coord[2]; z < bb_end_coord[2]; z += bb_spacing_coord[2])
             {
-                message += slice.ToString() + "\n";
-                messageTextBlock.Text = message;
-            });
+
+                // Central rod points
+                for (int i = 0; i < N_pts; i++)
+                {
+                    double x = bb_center_coord[0] + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                    double y = bb_center_coord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                    rod_points_list.Add(new List<double>() { x, y, z });
+                }
+
+                //----- Rods in +X -----\\
+                int rod_count_x = 1;
+                while (true)
+                {
+                    double test_max_x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                    if (test_max_x > bb_end_coord[0]) break;
+                    for (int i = 0; i < N_pts; i++)
+                    {
+                        double x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                        double y = bb_center_coord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                        rod_points_list.Add(new List<double>() { x, y, z });
+                    }
+
+                    // For this x value, add rods in +Y
+                    int rod_count_y = 1;
+                    while (true)
+                    {
+                        double test_max_y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                        if (test_max_y > bb_end_coord[1]) break;
+                        for (int i = 0; i < N_pts; i++)
+                        {
+                            double x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                            double y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                            rod_points_list.Add(new List<double>() { x, y, z });
+                        }
+                        rod_count_y++;
+                    }
+
+                    // For this x value, add rods in -Y
+                    rod_count_y = 1;
+                    while (true)
+                    {
+                        double test_max_y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                        if (test_max_y < bb_start_coord[1]) break;
+                        for (int i = 0; i < N_pts; i++)
+                        {
+                            double x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                            double y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                            rod_points_list.Add(new List<double>() { x, y, z });
+                        }
+                        rod_count_y++;
+                    }
+
+                    rod_count_x++;
+                }
+
+                //----- Rods in -X -----\\
+                while (true)
+                {
+                    double test_max_x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                    if (test_max_x < bb_start_coord[0]) break;
+                    for (int i = 0; i < N_pts; i++)
+                    {
+                        double x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                        double y = bb_center_coord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                        rod_points_list.Add(new List<double>() { x, y, z });
+                    }
+
+                    // For this x value, add rods in +Y
+                    int rod_count_y = 1;
+                    while (true)
+                    {
+                        double test_max_y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                        if (test_max_y > bb_end_coord[1]) break;
+                        for (int i = 0; i < N_pts; i++)
+                        {
+                            double x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                            double y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                            rod_points_list.Add(new List<double>() { x, y, z });
+                        }
+                        rod_count_y++;
+                    }
+
+                    // For this x value, add rods in -Y
+                    rod_count_y = 1;
+                    while (true)
+                    {
+                        double test_max_y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                        if (test_max_y < bb_start_coord[1]) break;
+                        for (int i = 0; i < N_pts; i++)
+                        {
+                            double x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
+                            double y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
+                            rod_points_list.Add(new List<double>() { x, y, z });
+                        }
+                        rod_count_y++;
+                    }
+
+                    rod_count_x++;
+                }
+
+                break;
+            }
+
+            // List of Lists to Matrix
+            double[,] tmp = new double[rod_points_list.Count(), 3];
+            for (int i = 0; i < rod_points_list.Count(); i++)
+            {
+                for (int j = 0; j < rod_points_list[i].Count(); j++)
+                    tmp[i, j] = rod_points_list[i][j];
+            }
+            Matrix<double> rod_points = Matrix<double>.Build.DenseOfArray(tmp);
+            message += rod_points.ToString() + "\n";
+            // Offset center based on user input
+            //Recall for HFS images: 
+            // X increases from left to right
+            // Y increases from anterior to posterior 
+            // Z increases from inferior to superior
+
+
+
 
             // Get image dimensions/coordinates
-            List<int> ct_size = new List<int>() { CT.XSize, CT.YSize, CT.ZSize };
+            List <int> ct_size = new List<int>() { CT.XSize, CT.YSize, CT.ZSize };
             List<float> ct_spacing = new List<float>() { (float)CT.XRes, (float)CT.YRes, (float)CT.ZRes };
 
             // Script complete
             this.Dispatcher.Invoke(() =>
             {
+                messageTextBlock.Text = message;
                 runButton.IsEnabled = true;
                 abortButton.IsEnabled = false;
                 progressBar.Value = 100;
             });
+        }
+
+
+        ///////////////////////////////////////////////////////////
+        // GetSlice
+        ///////////////////////////////////////////////////////////
+        public static int GetSlice(double z, StructureSet SS)
+        {
+            var imageRes = SS.Image.ZRes;
+            return Convert.ToInt32((z - SS.Image.Origin.z) / imageRes);
+        }
+
+
+        ///////////////////////////////////////////////////////////
+        // GetMeshBounds
+        ///////////////////////////////////////////////////////////
+        public static IEnumerable<int> GetMeshBounds(Structure structure, StructureSet SS)
+        {
+            var mesh = structure.MeshGeometry.Bounds;
+            var meshLow = GetSlice(mesh.Z, SS);
+            var meshUp = GetSlice(mesh.Z + mesh.SizeZ, SS) + 1;
+            return Enumerable.Range(meshLow, meshUp);
         }
 
     }

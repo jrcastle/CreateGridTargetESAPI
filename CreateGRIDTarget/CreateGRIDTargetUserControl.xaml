@@ -58,19 +58,19 @@
                             <ComboBox x:Name="ComboBoxGTVList" Margin="15 0" Height="25" Width="195" ItemsSource="{Binding structureList}" SelectionChanged = "GTVSelectionChanged" HorizontalAlignment="Left"  VerticalAlignment="Center"></ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Diameter of Grid:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Diameter of Lattice:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="1">
-                            <TextBox x:Name="TextBox_GridDiameter" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GridDiameter_Changed"></TextBox>
+                            <TextBox x:Name="TextBox_LatticeDiameter" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeDiameter_Changed"></TextBox>
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="1">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="4" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Separation of Grid:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Separation of Lattice:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="4" Grid.Column="1">
-                            <TextBox x:Name="TextBox_GridSeparation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GridSeparation_Changed"></TextBox>
+                            <TextBox x:Name="TextBox_LatticeSeparation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeSeparation_Changed"></TextBox>
                         </StackPanel>
                         <StackPanel Grid.Row="4" Grid.Column="1">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
@@ -86,45 +86,45 @@
                                     <ColumnDefinition Width="100"></ColumnDefinition>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <Label VerticalAlignment="Top" Margin="11 0" HorizontalAlignment="Left">X:</Label>
+                                    <Label VerticalAlignment="Top" Margin="11 0" HorizontalAlignment="Left">LR:</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="0">
-                                    <TextBox x:Name="TextBox_GTVErodeMarginX" Margin="26 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GTVErodeMarginX_Changed"></TextBox>
+                                    <TextBox x:Name="TextBox_GTVErodeMarginX" Margin="33 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GTVErodeMarginX_Changed"></TextBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="0">
-                                    <Label VerticalAlignment="Top" Margin="52,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                    <Label VerticalAlignment="Top" Margin="59,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">Y:</Label>
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">AP:</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBox x:Name="TextBox_GTVErodeMarginY" Margin="15 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GTVErodeMarginY_Changed"></TextBox>
+                                    <TextBox x:Name="TextBox_GTVErodeMarginY" Margin="23 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GTVErodeMarginY_Changed"></TextBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <Label VerticalAlignment="Top" Margin="41,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                    <Label VerticalAlignment="Top" Margin="49,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">Z:</Label>
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">IS:</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBox x:Name="TextBox_GTVErodeMarginZ" Margin="15 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GTVErodeMarginZ_Changed"></TextBox>
+                                    <TextBox x:Name="TextBox_GTVErodeMarginZ" Margin="19 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GTVErodeMarginZ_Changed"></TextBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <Label VerticalAlignment="Top" Margin="41,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                    <Label VerticalAlignment="Top" Margin="45,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
                         <StackPanel Grid.Row="8" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Grid Pattern Rotation:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Lattice Pattern Rotation:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="8" Grid.Column="1">
-                            <TextBox x:Name="TextBox_GridRotation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GridRotation_Changed"></TextBox>
+                            <TextBox x:Name="TextBox_LatticeRotation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeRotation_Changed"></TextBox>
                         </StackPanel>
                         <StackPanel Grid.Row="8" Grid.Column="1">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Left" Width="100" Margin="89 0">Degrees</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="10" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Grid Pattern Shift:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Lattice Pattern Shift:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="10" Grid.Column="1">
                             <Grid>
@@ -134,22 +134,22 @@
                                     <ColumnDefinition Width="100"></ColumnDefinition>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <Label VerticalAlignment="Top" Margin="11 0" HorizontalAlignment="Left">X:</Label>
+                                    <Label VerticalAlignment="Top" Margin="11 0" HorizontalAlignment="Left">LR:</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="0">
-                                    <TextBox x:Name="TextBox_GridShiftX" Margin="26 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GridShiftX_Changed"></TextBox>
+                                    <TextBox x:Name="TextBox_LatticeShiftX" Margin="33 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeShiftX_Changed"></TextBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="0">
-                                    <Label VerticalAlignment="Top" Margin="52,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                    <Label VerticalAlignment="Top" Margin="59,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">Z:</Label>
+                                    <Label VerticalAlignment="Top" Margin="4 0" HorizontalAlignment="Left">IS:</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBox x:Name="TextBox_GridShiftZ" Margin="15 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_GridShiftZ_Changed"></TextBox>
+                                    <TextBox x:Name="TextBox_LatticeShiftZ" Margin="23 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeShiftZ_Changed"></TextBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <Label VerticalAlignment="Top" Margin="41,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                    <Label VerticalAlignment="Top" Margin="49,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
