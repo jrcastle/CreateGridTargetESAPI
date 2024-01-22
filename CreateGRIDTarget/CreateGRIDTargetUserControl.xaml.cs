@@ -19,6 +19,7 @@ using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Runtime;
 using MathNet.Numerics.LinearAlgebra;
+using MathNet.Spatial.Euclidean;
 using VMS.TPS.Common.Model.API;
 
 namespace CreateGRIDTarget
@@ -28,7 +29,7 @@ namespace CreateGRIDTarget
     ////////////////////////////////////////////////
     public class LatticeCylinder
     {
-        public Vector<double> orientation { get; set; }
+        public Vector3D orientation { get; set; }
         public double radius { get; set; }
         public double separation { get; set; }
     }
@@ -50,7 +51,6 @@ namespace CreateGRIDTarget
         public List<float> gtvErodeMarginXYZ { get; set; }
         public List<float> latticePatternShiftXZ { get; set; }
         public CancellationTokenSource cancellationToken { get; set; }
-        public PlanSetup plan { get; set; }
         public VMS.TPS.Common.Model.API.Image CT { get; set; }
         public StructureSet struct_set { get; set; }
 
@@ -58,12 +58,11 @@ namespace CreateGRIDTarget
         ////////////////////////////////////////////////
         // CONSTRUCTOR 
         ////////////////////////////////////////////////
-        public CreateGRIDTargetUserControl(PlanSetup p, VMS.TPS.Common.Model.API.Image img, StructureSet ss)
+        public CreateGRIDTargetUserControl(VMS.TPS.Common.Model.API.Image img, StructureSet ss)
         {
             InitializeComponent();
 
-            // Initialize class members for plan, ct, and structure set
-            plan = p;
+            // Initialize class members for ct, and structure set
             CT = img;
             struct_set = ss;
 
@@ -448,18 +447,18 @@ namespace CreateGRIDTarget
             double max_bb_size = bb_size_coord.Max();
 
             List<double> bb_center_coord = new List<double>();
-            for (int i = 0; i < 3; i++) bb_center_coord[i] = (bb_start_coord[i] + bb_end_coord[i]) / 2.0;
+            for (int i = 0; i < 3; i++) bb_center_coord.Add((bb_start_coord[i] + bb_end_coord[i]) / 2.0);
 
             // Create Cylinder object and orient Cylinder direction based on largest dimension of bounding box
             LatticeCylinder cyl = new LatticeCylinder();
             cyl.radius = latticeDiameter / 2.0;
             cyl.separation = latticeSeparation;
             if (bb_size_coord[0] > bb_size_coord[1] && bb_size_coord[0] > bb_size_coord[2])
-                cyl.orientation = Vector<double>.Build.DenseOfArray(new double[] { 1, 0 ,0 });
+                cyl.orientation = new Vector3D(1, 0, 0);
             else if (bb_size_coord[1] > bb_size_coord[0] && bb_size_coord[1] > bb_size_coord[2])
-                cyl.orientation = cyl.orientation = Vector<double>.Build.DenseOfArray(new double[] { 0, 1, 0 });
+                cyl.orientation = cyl.orientation = new Vector3D(0, 1, 0);
             else
-                cyl.orientation = cyl.orientation = Vector<double>.Build.DenseOfArray(new double[] { 0, 0, 1 });
+                cyl.orientation = cyl.orientation = new Vector3D(0, 0, 1);
 
 
             // Create a volumetric cube around the center point of the bounding box whose side 
@@ -526,21 +525,21 @@ namespace CreateGRIDTarget
                             // Add rod in +Y for +X
                             double x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
                             double y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z });
+                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
 
                             // Add rod in -Y for +X
                             y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z });
+                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
 
                             // Add rod in +Y for -X
                             x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
                             y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z });
+                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
 
                             // Add rod in -Y for -X
                             x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
                             y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z });
+                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
                         }
                         rod_count_y++;
                     }
@@ -557,12 +556,13 @@ namespace CreateGRIDTarget
                     tmp[i, j] = rod_points_list[i][j];
             }
             Matrix<double> rod_points = Matrix<double>.Build.DenseOfArray(tmp);
-            message += rod_points.ToString() + "\n";
 
             // Create Optimization Structure
-            Structure opti_struct;
-           
+            // TODO: Figure out how to get permission to add to structure set
+            // Structure opti_struct;
+
             // Check if it exists first
+            /*
             string opti_struct_name = CheckStructureIDs("zLatticeOpti", struct_set);
             if (opti_struct_name == "FAIL") {
                 // Give up
@@ -581,14 +581,26 @@ namespace CreateGRIDTarget
                 // Structure name not found in structure set, make it
                 opti_struct = struct_set.AddStructure("CONTROL", "zLatticeOpti");
             }
+            */
 
             // TODO: Rotate points to direction of largest GTV size
+            Vector3D default_orientation = new Vector3D(0, 0, 1);
+            Matrix<double> rotation_matrix = Matrix3D.RotationTo(default_orientation, cyl.orientation);
+            Matrix<double> affine_transform = ConstructAffineTransform(rotation_matrix, bb_center_coord);
+            //rod_points = affine_transform * rod_points.Transpose();
+
+
 
             // TODO: Apply user-specified translations
 
             // TODO: Apply user-specified rotations
 
             // TODO: Fill contour slice-by-slice
+            double image_res_z = struct_set.Image.ZRes;
+            foreach (Vector<double> col in rod_points.EnumerateColumns())
+            {
+                int slice = Convert.ToInt32((col[2]) - struct_set.Image.Origin.z / image_res_z);
+            }
 
             // TODO: Union of rods and GTV
             //var overlap = ss.AddStructure("CONTROL", CheckStructureIds(ss, "organ_ovl");
@@ -661,6 +673,22 @@ namespace CreateGRIDTarget
         }
 
 
+        ///////////////////////////////////////////////////////////
+        // ConstructAffineTransform
+        ///////////////////////////////////////////////////////////
+        Matrix<double> ConstructAffineTransform(Matrix<double> R, List<double> P)
+        {
+            Vector<double> v = Vector<double>.Build.DenseOfArray(P.ToArray());
+            Vector<double> transl = v - R * v;
+            double[,] t = new double[,] {
+                { R[0,0], R[0,1], R[0,2], transl[0] },
+                { R[1,0], R[1,1], R[1,2], transl[1] },
+                { R[2,0], R[2,1], R[2,2], transl[2] },
+                { 0,      0,      0,      1 }
+            };
+            Matrix<double> affine_transform = Matrix<double>.Build.DenseOfArray(t);
+            return affine_transform;
+        }
     }
 }
 
