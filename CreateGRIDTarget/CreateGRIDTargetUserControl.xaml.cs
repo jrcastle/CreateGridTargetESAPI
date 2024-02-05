@@ -21,6 +21,7 @@ using System.Runtime;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Spatial.Euclidean;
 using VMS.TPS.Common.Model.API;
+using VMS.TPS.Common.Model.Types;
 
 namespace CreateGRIDTarget
 {
@@ -52,7 +53,7 @@ namespace CreateGRIDTarget
         public List<float> latticePatternShiftXZ { get; set; }
         public CancellationTokenSource cancellationToken { get; set; }
         public VMS.TPS.Common.Model.API.Image CT { get; set; }
-        public StructureSet struct_set { get; set; }
+        public StructureSet structSet { get; set; }
 
 
         ////////////////////////////////////////////////
@@ -64,7 +65,7 @@ namespace CreateGRIDTarget
 
             // Initialize class members for ct, and structure set
             CT = img;
-            struct_set = ss;
+            structSet = ss;
 
             // Blank message to start
             message = "";
@@ -97,7 +98,7 @@ namespace CreateGRIDTarget
 
             // Make list of structures for dropdown
             structureList = new ObservableCollection<string>();
-            foreach (var s in struct_set.Structures)
+            foreach (var s in structSet.Structures)
             {
                 structureList.Add(s.Id.ToString());
             }
@@ -170,7 +171,7 @@ namespace CreateGRIDTarget
             catch
             {
                 gtvErodeMarginXYZ[0] = 8675309;
-                message += "X erosion margin input needs to be a number.\n";
+                message += "Left-right erosion margin input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
             CheckRunIsReady();
@@ -189,7 +190,7 @@ namespace CreateGRIDTarget
             catch
             {
                 gtvErodeMarginXYZ[1] = 8675309;
-                message += "Y erosion margin input needs to be a number.\n";
+                message += "Ant-post erosion margin input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
             CheckRunIsReady();
@@ -208,7 +209,7 @@ namespace CreateGRIDTarget
             catch
             {
                 gtvErodeMarginXYZ[2] = 8675309;
-                message += "Z erosion margin input needs to be a number.\n";
+                message += "Sup-inf erosion margin input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
             CheckRunIsReady();
@@ -396,10 +397,9 @@ namespace CreateGRIDTarget
         private async void CreateGRIDTarget(CancellationToken token)
         {
             // Might need to wrap the funtion with this in the future:
-            //await Task.Factory.StartNew(async () =>
+            //await Task.Run(() =>
             //{
-            //});
-
+            
             token.ThrowIfCancellationRequested();
             this.Dispatcher.Invoke(() =>
             {
@@ -412,53 +412,72 @@ namespace CreateGRIDTarget
 
 
             // Get GTV
-            var gtv = struct_set.Structures.First(x => x.Id == gtvStructureName);
+            Structure gtv = structSet.Structures.First(x => x.Id == gtvStructureName);
 
             // Get the list of slices spanning the GTV
-            IEnumerable<int> slices = GetMeshBounds(gtv, struct_set);
+            IEnumerable<int> slices = GetMeshBounds(gtv, structSet);
 
             // Establish bounding box parameters
-            var bounding_box = gtv.MeshGeometry.Bounds;
+            var boundingBox = gtv.MeshGeometry.Bounds;
 
-            List<double> bb_start_coord = new List<double>(){
-                bounding_box.X,
-                bounding_box.Y,
-                bounding_box.Z
+            List<double> bbStartCoord = new List<double>(){
+                boundingBox.X,
+                boundingBox.Y,
+                boundingBox.Z
             };
 
-            List<double> bb_end_coord = new List<double>() {
-                bounding_box.X + bounding_box.SizeX,
-                bounding_box.Y + bounding_box.SizeY,
-                bounding_box.Z + bounding_box.SizeZ
+            List<double> bbEndCoord = new List<double>() {
+                boundingBox.X + boundingBox.SizeX,
+                boundingBox.Y + boundingBox.SizeY,
+                boundingBox.Z + boundingBox.SizeZ
             };
 
-            List<double> bb_spacing_coord = new List<double>() {
-                struct_set.Image.XRes,
-                struct_set.Image.YRes,
-                struct_set.Image.ZRes
+            List<double> bbSpacingCoord = new List<double>() {
+                structSet.Image.XRes,
+                structSet.Image.YRes,
+                structSet.Image.ZRes
             };
 
             List<double> bb_size_coord = new List<double>() {
-                bounding_box.SizeX,
-                bounding_box.SizeY,
-                bounding_box.SizeZ
+                boundingBox.SizeX,
+                boundingBox.SizeY,
+                boundingBox.SizeZ
             };
 
             double max_bb_size = bb_size_coord.Max();
 
-            List<double> bb_center_coord = new List<double>();
-            for (int i = 0; i < 3; i++) bb_center_coord.Add((bb_start_coord[i] + bb_end_coord[i]) / 2.0);
+            List<double> bbCenterCoord = new List<double>();
+            for (int i = 0; i < 3; i++) bbCenterCoord.Add((bbStartCoord[i] + bbEndCoord[i]) / 2.0);
 
-            // Create Cylinder object and orient Cylinder direction based on largest dimension of bounding box
+            // Add user-specified translations
+            if (latticePatternShiftXZ[0] != 0 || latticePatternShiftXZ[1] != 0)
+            {
+                bbStartCoord[0] += latticePatternShiftXZ[0];
+                bbEndCoord[0] += latticePatternShiftXZ[0];
+                bbCenterCoord[0] += latticePatternShiftXZ[0];
+
+                bbStartCoord[2] += latticePatternShiftXZ[1];
+                bbEndCoord[2] += latticePatternShiftXZ[1];
+                bbCenterCoord[2] += latticePatternShiftXZ[1];
+            }
+
+            // Create Cylinder object and orient Cylinder in the +z direction
             LatticeCylinder cyl = new LatticeCylinder();
             cyl.radius = latticeDiameter / 2.0;
             cyl.separation = latticeSeparation;
+            cyl.orientation = cyl.orientation = new Vector3D(0, 0, 1);
+
+            ///// TODO: FUTURE DIRECTIONS /////
+            // Create Cylinder object and orient Cylinder direction based on largest dimension of bounding box
+            /*
             if (bb_size_coord[0] > bb_size_coord[1] && bb_size_coord[0] > bb_size_coord[2])
                 cyl.orientation = new Vector3D(1, 0, 0);
             else if (bb_size_coord[1] > bb_size_coord[0] && bb_size_coord[1] > bb_size_coord[2])
                 cyl.orientation = cyl.orientation = new Vector3D(0, 1, 0);
             else
                 cyl.orientation = cyl.orientation = new Vector3D(0, 0, 1);
+            */
+            ///////////////////////////////////
 
 
             // Create a volumetric cube around the center point of the bounding box whose side 
@@ -466,107 +485,48 @@ namespace CreateGRIDTarget
             // through the central point. Increment outwards in x and y, using the cylinder diameter and 
             // lattice separation until any point in the rod exceeds a cube boundary. Keep whole rods, 
             // even if they exceed the cube border, they will be cropped later.
-            int N_pts = 25;
+
+            ///// TODO: FUTURE DIRECTIONS /////
+            // Create a volumetric cube around the center point of the bounding box whose side 
+            // length is the max dimension of the bounding box. This will help with future 
+            // rotations applied to the structures
+            /*
             List<double> cube_low = new List<double>()
             {
-                bb_center_coord[0] - max_bb_size / 2.0,
-                bb_center_coord[1] - max_bb_size / 2.0,
-                bb_center_coord[2] - max_bb_size / 2.0
+                bbCenterCoord[0] - max_bb_size / 2.0,
+                bbCenterCoord[1] - max_bb_size / 2.0,
+                bbCenterCoord[2] - max_bb_size / 2.0
             };
             List<double> cube_high = new List<double>()
             {
-                bb_center_coord[0] + max_bb_size / 2.0,
-                bb_center_coord[1] + max_bb_size / 2.0,
-                bb_center_coord[2] + max_bb_size / 2.0
+                bbCenterCoord[0] + max_bb_size / 2.0,
+                bbCenterCoord[1] + max_bb_size / 2.0,
+                bbCenterCoord[2] + max_bb_size / 2.0
             };
-            List<List<double>> rod_points_list = new List<List<double>>();            
-            for (double z = cube_low[2]; z <= cube_high[2]; z += bb_spacing_coord.Min())
-            {
+            */
+            ///////////////////////////////////
 
-                // Central rod points
-                for (int i = 0; i < N_pts; i++)
-                {
-                    double x = bb_center_coord[0] + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
-                    double y = bb_center_coord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                    rod_points_list.Add(new List<double>() { x, y, z });
-                }
+            ///// TODO: FUTURE DIRECTIONS /////
+            // Apply user-specified rotations
+            /*
+            // Will need to do some math here to figure out orientation matrix based on user angles...
+            Vector3D default_orientation = new Vector3D(0, 0, 1);
+            Matrix<double> rotation_matrix = Matrix3D.RotationTo(default_orientation, cyl.orientation);
+            Matrix<double> affine_transform = ConstructAffineTransform(rotation_matrix, bbCenterCoord);
+            */
 
-                //----- Rods in X -----\\
-                int rod_count_x = 1;
-                bool within_x = true;
-                while (within_x)
-                {
-                    // Cube is symmetric, only need to test one boundary, will test the +X boundary
-                    double test_max_x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
-                    if (test_max_x > cube_high[0]) within_x = false;
-                    for (int i = 0; i < N_pts; i++)
-                    {
-                        // Add rod in +X
-                        double x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
-                        double y = bb_center_coord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                        rod_points_list.Add(new List<double>() { x, y, z });
+            int nPts = 25;
+            List<List<VVector>> lattice = CreateRodLattice(nPts, cyl, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord);
 
-                        // Add rod in -X
-                        x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
-                        rod_points_list.Add(new List<double>() { x, y, z });
-                    }
-
-                    //----- Rods in Y -----\\
-                    // For this x rod increment, add rods in +Y
-                    int rod_count_y = 1;
-                    bool within_y = true;
-                    while (within_y)
-                    {
-                        // Cube is symmetric, only need to test one boundary, will test the +Y boundary
-                        double test_max_y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
-                        if (test_max_y > cube_high[1]) within_y = false;
-                        for (int i = 0; i < N_pts; i++)
-                        {
-                            // Add rod in +Y for +X
-                            double x = bb_center_coord[0] + (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
-                            double y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
-
-                            // Add rod in -Y for +X
-                            y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
-
-                            // Add rod in +Y for -X
-                            x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
-                            y = bb_center_coord[1] + (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
-
-                            // Add rod in -Y for -X
-                            x = bb_center_coord[0] - (double)rod_count_x * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)N_pts);
-                            y = bb_center_coord[1] - (double)rod_count_y * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)N_pts);
-                            rod_points_list.Add(new List<double>() { x, y, z, 1 }); // Append a 1 for future affine transform
-                        }
-                        rod_count_y++;
-                    }
-                    rod_count_x++;
-                }
-                break;
-            }
-
-            // List of Lists to Matrix
-            double[,] tmp = new double[rod_points_list.Count(), 3];
-            for (int i = 0; i < rod_points_list.Count(); i++)
-            {
-                for (int j = 0; j < rod_points_list[i].Count(); j++)
-                    tmp[i, j] = rod_points_list[i][j];
-            }
-            Matrix<double> rod_points = Matrix<double>.Build.DenseOfArray(tmp);
 
             // Create Optimization Structure
-            // TODO: Figure out how to get permission to add to structure set
-            // Structure opti_struct;
+            Structure optiStruct;
 
             // Check if it exists first
-            /*
-            string opti_struct_name = CheckStructureIDs("zLatticeOpti", struct_set);
-            if (opti_struct_name == "FAIL") {
+            string optiStructName = CheckStructureIDs("zLatticeOpti", structSet);
+            if (optiStructName == "FAIL") {
                 // Give up
-                message += "Unable to make GTV structure after 10 attempts. Please delete/rename opti structures and try again.\n";
+                message += "Unable to make opti structure after 10 attempts. Please delete/rename opti structures and try again.\n";
                 this.Dispatcher.Invoke(() =>
                 {
                     runButton.IsEnabled = true;
@@ -579,41 +539,93 @@ namespace CreateGRIDTarget
             else
             {
                 // Structure name not found in structure set, make it
-                opti_struct = struct_set.AddStructure("CONTROL", "zLatticeOpti");
-            }
-            */
+                optiStruct = structSet.AddStructure("CONTROL", optiStructName);
+            }            
 
-            // TODO: Rotate points to direction of largest GTV size
-            Vector3D default_orientation = new Vector3D(0, 0, 1);
-            Matrix<double> rotation_matrix = Matrix3D.RotationTo(default_orientation, cyl.orientation);
-            Matrix<double> affine_transform = ConstructAffineTransform(rotation_matrix, bb_center_coord);
-            //rod_points = affine_transform * rod_points.Transpose();
+            // Fill contour slice-by-slice
+            double imageResZ = structSet.Image.ZRes;
+            var points = new List<VVector>();
+            VVector[] arrayPoints;
 
-
-
-            // TODO: Apply user-specified translations
-
-            // TODO: Apply user-specified rotations
-
-            // TODO: Fill contour slice-by-slice
-            double image_res_z = struct_set.Image.ZRes;
-            foreach (Vector<double> col in rod_points.EnumerateColumns())
+            for (int i = 0; i < lattice.Count(); i++)
             {
-                int slice = Convert.ToInt32((col[2]) - struct_set.Image.Origin.z / image_res_z);
+                int oldSlice = -1;
+                bool first = true;
+                
+                for (int j = 0; j < lattice[i].Count(); j++)
+                {
+                    int slice = Convert.ToInt32((lattice[i][j][2] - structSet.Image.Origin.z) / imageResZ);
+                    if (slice != oldSlice && !first)
+                    {
+                        arrayPoints = points.ToArray();
+                        optiStruct.AddContourOnImagePlane(arrayPoints, slice);
+                        points.Clear();
+                        oldSlice = slice;
+                    }
+                    else
+                    {
+                        points.Add(lattice[i][j]);
+                    }
+                    if (first)
+                    {
+                        first = false;
+                        oldSlice = slice;
+                    }
+                }
+                
             }
 
-            // TODO: Union of rods and GTV
-            //var overlap = ss.AddStructure("CONTROL", CheckStructureIds(ss, "organ_ovl");
-            //overlap.SegmentVolume = gtv.SegmentVolume.And(oar.SegmentVolume);
+            // Create eroded GTV, if specified
+            if (gtvErodeMarginXYZ[0] != 0 && gtvErodeMarginXYZ[1] != 0 && gtvErodeMarginXYZ[2] != 0)
+            {
+                Structure gtvErode;
+
+                // Check if it exists first
+                string gtvErodeName = CheckStructureIDs("z" + gtvStructureName + "-" + gtvErodeMarginXYZ[0].ToString() + "mmSI" + gtvErodeMarginXYZ[1].ToString() + "mmAP" + gtvErodeMarginXYZ[2] + "mmSI", structSet);
+                if (gtvErodeName == "FAIL")
+                {
+                    // Give up
+                    message += "Unable to make eroded GTV structure after 10 attempts. Please delete/rename opti structures and try again.\n";
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        runButton.IsEnabled = true;
+                        abortButton.IsEnabled = false;
+                        messageTextBlock.Text = message;
+                        progressBar.Value = 0;
+                    });
+                    return;
+                }
+                else
+                {
+                    // Structure name not found in structure set, make it
+                    gtvErode = structSet.AddStructure("CONTROL", gtvErodeName);
+                }
+
+                // Erode
+                double x = gtvErodeMarginXYZ[0];
+                double y = gtvErodeMarginXYZ[1];
+                double z = gtvErodeMarginXYZ[2];
+                AxisAlignedMargins margins = new AxisAlignedMargins(StructureMarginGeometry.Inner, x, y, z, x, y, z);
+                gtvErode.SegmentVolume = gtv.AsymmetricMargin(margins);
+
+                // Union of lattice and eroded GTV
+                optiStruct.SegmentVolume = gtvErode.SegmentVolume.And(optiStruct.SegmentVolume);
+            }
+            else
+            {
+                optiStruct.SegmentVolume = gtv.SegmentVolume.And(optiStruct.SegmentVolume);
+            }
 
             // Script complete
             this.Dispatcher.Invoke(() =>
             {
+                message += "Process complete! This window can now be closed.\n";
                 messageTextBlock.Text = message;
                 runButton.IsEnabled = true;
                 abortButton.IsEnabled = false;
                 progressBar.Value = 100;
             });
+            //});
         }
 
 
@@ -640,11 +652,152 @@ namespace CreateGRIDTarget
 
 
         ///////////////////////////////////////////////////////////
+        // CreateRodLattice
+        ///////////////////////////////////////////////////////////
+        List<List<VVector>> CreateRodLattice(int nPts, LatticeCylinder cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord)
+        {
+            ///// FUTURE DIRECTIONS: /////
+            // Add in rotation of coordinates before adding to points[iRod]
+            //////////////////////////////
+
+            List<List<VVector>> points = new List<List<VVector>>();
+            bool first = true;
+
+            for (double z = bbStartCoord[2] - bbSpacingCoord[2]; z <= bbEndCoord[2] + bbSpacingCoord[2]; z += bbSpacingCoord[2])
+            {
+
+                int iRod = -1;
+
+                //----- Central rod points and Rods in +X -----\\
+                int rodCountX = 0;
+                bool withinX = true;
+                while (withinX)
+                {
+                    iRod++;
+                    if (first) points.Add(new List<VVector>());
+
+                    double testMaxX = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                    if (testMaxX > bbEndCoord[0]) withinX = false;
+                    for (int i = 0; i < nPts; i++)
+                    {
+                        double x = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                        double y = bbCenterCoord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                        points[iRod].Add(new VVector(x, y, z));
+                    }
+
+                    //----- For this value of +X, add rods in +Y -----\\
+                    int rodCountY = 1;
+                    bool withinY = true;
+                    while (withinY)
+                    {
+                        iRod++;
+                        if (first) points.Add(new List<VVector>());
+
+                        double test_max_y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                        if (test_max_y > bbEndCoord[1]) withinY = false;
+                        for (int i = 0; i < nPts; i++)
+                        {
+                            double x = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            points[iRod].Add(new VVector(x, y, z));
+                        }
+                        rodCountY++;
+                    }
+
+                    //----- For this value of +X, add rods in -Y -----\\
+                    rodCountY = 1;
+                    withinY = true;
+                    while (withinY)
+                    {
+                        iRod++;
+                        if (first) points.Add(new List<VVector>());
+
+                        double testMinY = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                        if (testMinY < bbStartCoord[1]) withinY = false;
+                        for (int i = 0; i < nPts; i++)
+                        {
+                            double x = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            points[iRod].Add(new VVector(x, y, z));
+                        }
+                        rodCountY++;
+                    }
+
+                    rodCountX++;
+                }
+
+                //----- Rods in -X -----\\
+                rodCountX = 1;
+                withinX = true;
+                while (withinX)
+                {
+
+                    iRod++;
+                    if (first) points.Add(new List<VVector>());
+
+                    double testMinX = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                    if (testMinX < bbStartCoord[0]) withinX = false;
+                    for (int i = 0; i < nPts; i++)
+                    {
+                        double x = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                        double y = bbCenterCoord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                        points[iRod].Add(new VVector(x, y, z));
+                    }
+
+                    //----- For this value of -X, add rods in +Y -----\\
+                    int rodCountY = 1;
+                    bool withinY = true;
+                    while (withinY)
+                    {
+                        iRod++;
+                        if (first) points.Add(new List<VVector>());
+
+                        double test_max_y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                        if (test_max_y > bbEndCoord[1]) withinY = false;
+                        for (int i = 0; i < nPts; i++)
+                        {
+                            double x = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            points[iRod].Add(new VVector(x, y, z));
+                        }
+                        rodCountY++;
+                    }
+
+                    //----- For this value of -X, add rods in -Y -----\\
+                    rodCountY = 1;
+                    withinY = true;
+                    while (withinY)
+                    {
+                        iRod++;
+                        if (first) points.Add(new List<VVector>());
+
+                        double testMinY = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                        if (testMinY < bbStartCoord[1]) withinY = false;
+                        for (int i = 0; i < nPts; i++)
+                        {
+                            double x = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            points[iRod].Add(new VVector(x, y, z));
+                        }
+                        rodCountY++;
+                    }
+
+                    rodCountX++;
+                }
+
+                first = false;
+            }
+
+            return points;
+        }
+
+
+        ///////////////////////////////////////////////////////////
         // CheckStructureIDs
         ///////////////////////////////////////////////////////////
         string CheckStructureIDs(string name, StructureSet ss)
         {
-            string struct_name = "FAIL";
+            string structName = "FAIL";
             if (ss.Structures.Any(e => e.Id.ToLower() == name))
             {
                 for (int i = 1; i <= 10; i++)
@@ -657,19 +810,19 @@ namespace CreateGRIDTarget
                     });
 
                     // Check this attempt
-                    if (!struct_set.Structures.Any(e => e.Id.ToLower() == "zLatticeOpti" + i.ToString()))
+                    if (!structSet.Structures.Any(e => e.Id.ToLower() == name + i.ToString()))
                     {
                         // Structure name not found in structure set, make it
-                        struct_name = name + i.ToString();
+                        structName = name + i.ToString();
                         break;
                     }
                 }
             }
             else
             {
-                struct_name = name;
+                structName = name;
             }
-            return struct_name;
+            return structName;
         }
 
 
@@ -686,8 +839,8 @@ namespace CreateGRIDTarget
                 { R[2,0], R[2,1], R[2,2], transl[2] },
                 { 0,      0,      0,      1 }
             };
-            Matrix<double> affine_transform = Matrix<double>.Build.DenseOfArray(t);
-            return affine_transform;
+            Matrix<double> affineTransform = Matrix<double>.Build.DenseOfArray(t);
+            return affineTransform;
         }
     }
 }
