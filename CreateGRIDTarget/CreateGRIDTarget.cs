@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Forms;
 using CreateGRIDTarget;
 using System.Reflection;
 using VMS.TPS.Common.Model.API;
 
-[assembly: AssemblyVersion("1.0.0.12")]
-[assembly: AssemblyFileVersion("1.0.0.12")]
+[assembly: AssemblyVersion("1.0.0.16")]
+[assembly: AssemblyFileVersion("1.0.0.16")]
 [assembly: AssemblyInformationalVersion("1.0")]
 [assembly: ESAPIScript(IsWriteable = true)]
 

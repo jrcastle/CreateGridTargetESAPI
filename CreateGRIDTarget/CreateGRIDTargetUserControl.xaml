@@ -143,13 +143,22 @@
                                     <Label VerticalAlignment="Top" Margin="59,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <Label VerticalAlignment="Top" Margin="4 0" HorizontalAlignment="Left">IS:</Label>
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">AP:</Label>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBox x:Name="TextBox_LatticeShiftZ" Margin="23 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeShiftZ_Changed"></TextBox>
+                                    <TextBox x:Name="TextBox_LatticeShiftY" Margin="23 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeShiftY_Changed"></TextBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <Label VerticalAlignment="Top" Margin="49,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <Label VerticalAlignment="Top" Margin="0 0" HorizontalAlignment="Left">IS:</Label>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBox x:Name="TextBox_LatticeShiftZ" Margin="19 0 0 0" Height="25" Width="30" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeShiftZ_Changed"></TextBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <Label VerticalAlignment="Top" Margin="45,0,0,0" HorizontalAlignment="Left" Width="30">mm</Label>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
