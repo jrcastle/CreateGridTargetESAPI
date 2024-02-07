@@ -24,6 +24,7 @@ namespace CreateGRIDTarget
         public double separation { get; set; }
     }
 
+
     ////////////////////////////////////////////////
     // CreateGRIDTargetUserControl 
     ////////////////////////////////////////////////
@@ -34,15 +35,19 @@ namespace CreateGRIDTarget
         ////////////////////////////////////////////////
         public string message { get; set; }
         ObservableCollection<string> structureList { get; set; }
+        ObservableCollection<string> latticeList { get; set; }
         public string gtvStructureName { get; set; }
+        public string latticeType { get; set; }
         public float latticeDiameter { get; set; }
         public float latticeSeparation { get; set; }
+        public float controlDiameter { get; set; }
         public float gridRotationDegrees { get; set; }
         public List<float> gtvErodeMarginXYZ { get; set; }
         public List<float> latticePatternShiftXYZ { get; set; }
         public CancellationTokenSource cancellationToken { get; set; }
         public VMS.TPS.Common.Model.API.Image CT { get; set; }
         public StructureSet structSet { get; set; }
+        string version { get; set; }
 
 
         ////////////////////////////////////////////////
@@ -50,7 +55,12 @@ namespace CreateGRIDTarget
         ////////////////////////////////////////////////
         public CreateGRIDTargetUserControl(VMS.TPS.Common.Model.API.Image img, StructureSet ss)
         {
+            
             InitializeComponent();
+
+            // Grab version for GUI
+            version = "v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            VersionLabel.Content = version;
 
             // Initialize class members for ct, and structure set
             CT = img;
@@ -64,7 +74,7 @@ namespace CreateGRIDTarget
             // To know if it should enable the run button or not
             latticeDiameter = 8675309;
             latticeSeparation = 8675309;
-            
+
 
             // Initialize margin/shift lists
             gtvErodeMarginXYZ = new List<float>();
@@ -93,6 +103,15 @@ namespace CreateGRIDTarget
                 structureList.Add(s.Id.ToString());
             }
             ComboBoxGTVList.ItemsSource = structureList;
+
+            // Make list of possible lattice types
+            latticeList = new ObservableCollection<string>();
+            latticeList.Add("Cylinders");
+            latticeList.Add("Spheres");
+            ComboBoxLatticeList.ItemsSource = latticeList;
+            ComboBoxLatticeList.SelectedIndex = 0;
+            latticeType = "Cylinders";
+
             this.DataContext = this;
 
             // Add closing event
@@ -107,6 +126,16 @@ namespace CreateGRIDTarget
         private void GTVSelectionChanged(object sender, RoutedEventArgs e)
         {
             gtvStructureName = ComboBoxGTVList.SelectedItem.ToString();
+            CheckRunIsReady();
+        }
+
+
+        ////////////////////////////////////////////////
+        // LatticeSelectionChanged
+        ////////////////////////////////////////////////
+        private void LatticeSelectionChanged(object sender, RoutedEventArgs e)
+        {
+            latticeType = ComboBoxLatticeList.SelectedItem.ToString();
             CheckRunIsReady();
         }
 
@@ -143,6 +172,25 @@ namespace CreateGRIDTarget
             {
                 latticeSeparation = 8675309;
                 message += "Grid separation input needs to be a number.\n";
+                messageTextBlock.Text = message;
+            }
+            CheckRunIsReady();
+        }
+
+
+        ////////////////////////////////////////////////
+        // TextBox_ControlDiameter_Changed
+        ////////////////////////////////////////////////
+        private void TextBox_ControlDiameter_Changed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                controlDiameter = float.Parse(TextBox_ControlDiameter.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+            }
+            catch
+            {
+                controlDiameter = 8675309;
+                message += "Control diameter input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
             CheckRunIsReady();
@@ -334,17 +382,12 @@ namespace CreateGRIDTarget
             {
                 if (latticeDiameter == 8675309) ready = false;
                 if (latticeSeparation == 8675309) ready = false;
+                if (controlDiameter == 8675309) ready = false;
                 if (gridRotationDegrees == 8675309) ready = false;
                 for (int i = 0; i < 3; i++)
                 {
                     if (gtvErodeMarginXYZ[i] == 8675309) ready = false;
                     if (latticePatternShiftXYZ[i] == 8675309) ready = false;
-                }
-                if (!structureList.Contains(gtvStructureName))
-                {
-                    ready = false;
-                    message += "Structure \"" + gtvStructureName.ToString() + "\" not found in structure set.\n";
-                    messageTextBlock.Text = message;
                 }
                 if (latticeDiameter < 0)
                 {
@@ -356,6 +399,18 @@ namespace CreateGRIDTarget
                 {
                     ready = false;
                     message += "Cannot have negative Grid Separation.\n";
+                    messageTextBlock.Text = message;
+                }
+                if (latticeType == "Spheres" || latticeType == "")
+                {
+                    ready = false;
+                    message += "Sphere lattice structures are not supported at this time.\n";
+                    messageTextBlock.Text = message;
+                }
+                if (!structureList.Contains(gtvStructureName))
+                {
+                    ready = false;
+                    message += "Structure \"" + gtvStructureName.ToString() + "\" not found in structure set.\n";
                     messageTextBlock.Text = message;
                 }
             }
@@ -526,12 +581,7 @@ namespace CreateGRIDTarget
                 progressBar.Value = 10;
             });
 
-            //----- Step 3: Create lattice object and orient in the +z direction -----\\
-            // TODO: Check if cylinder/spheres desired
-            LatticeCylinder cyl = new LatticeCylinder();
-            cyl.radius = latticeDiameter / 2.0;
-            cyl.separation = latticeSeparation;
-            cyl.orientation = cyl.orientation = new Vector3D(0, 0, 1);
+
 
             ///// TODO: FUTURE DIRECTIONS /////
             // Create Cylinder object and orient Cylinder direction based on largest dimension of bounding box
@@ -580,88 +630,79 @@ namespace CreateGRIDTarget
             Matrix<double> affine_transform = ConstructAffineTransform(rotation_matrix, bbCenterCoord);
             */
 
-            this.Dispatcher.Invoke(() =>
-            {
-                message += "Creating lattice ...\n";
-                messageTextBlock.Text = message;
-            });
-
-            int nPts = 25;
+            //----- Step 3: Create lattice object and orient in the +z direction -----\\
+            int nPts = 360;
             List<List<VVector>> lattice = null;
-            await Task.Run(() =>
+            List<List<VVector>> controlLattice = null;
+            if (latticeType == "Cylinders")
             {
-                lattice = CreateRodLattice(nPts, cyl, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord);
-            });
-            /*
+                LatticeCylinder cyl = new LatticeCylinder();
+                cyl.radius = latticeDiameter / 2.0;
+                cyl.separation = latticeSeparation;
+                cyl.orientation = cyl.orientation = new Vector3D(0, 0, 1);
+                double controlCylRadius = controlDiameter / 2.0;
+
+                // Opti structure
+                this.Dispatcher.Invoke(() =>
+                {
+                    message += "Creating optimization lattice ...\n";
+                    messageTextBlock.Text = message;
+                });
+                await Task.Run(() =>
+                {
+                    lattice = CreateRodLattice(nPts, cyl, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord);
+                });
+
+                // Control Structure
+                this.Dispatcher.Invoke(() =>
+                {
+                    progressBar.Value = 33;
+                    message += "Creating control lattice ...\n";
+                    messageTextBlock.Text = message;
+                });
+                await Task.Run(() =>
+                {
+                    controlLattice = CreateRodLattice(nPts, cyl, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, true, controlCylRadius);
+                });
+                this.Dispatcher.Invoke(() =>
+                {
+                    progressBar.Value = 66;
+                });
+            }
+            else if (latticeType == "Spheres")
+            {
+                // TODO: Implement this
+                this.Dispatcher.Invoke(() =>
+                {
+                    message += "Spheres not supported at this time. Aborting ...\n";
+                    messageTextBlock.Text = message;
+                });
+                return;
+            }
+
+            //----- Step 4: Create Optimization Structure -----\\
+            Structure optiStruct = CreateStructureAndAddToSet("zLatticeOpti", structSet, lattice);
             token.ThrowIfCancellationRequested();
             this.Dispatcher.Invoke(() =>
             {
                 progressBar.Value = 75;
             });
-            */
-            //----- Step 4: Create Optimization Structure -----\\
-            Structure optiStruct;
-
-            // Check if it exists first
-            string optiStructName = CheckStructureIDs("zLatticeOpti", structSet);
-            if (optiStructName == "FAIL") {
-                // Give up
-                message += "Unable to make opti structure after 10 attempts. Please delete/rename opti structures and try again.\n";
-                this.Dispatcher.Invoke(() =>
-                {
-                    runButton.IsEnabled = true;
-                    abortButton.IsEnabled = false;
-                    messageTextBlock.Text = message;
-                    progressBar.Value = 0;
-                });
-                return;
-            }           
-            else
-            {
-                // Structure name not found in structure set, make it
-                optiStruct = structSet.AddStructure("CONTROL", optiStructName);
-            }            
-
-            // Fill contour slice-by-slice
-            double imageResZ = structSet.Image.ZRes;
-            var points = new List<VVector>();
-            VVector[] arrayPoints;
-
-            for (int i = 0; i < lattice.Count(); i++)
-            {
-                int oldSlice = -1;
-                bool first = true;
-                
-                for (int j = 0; j < lattice[i].Count(); j++)
-                {
-                    int slice = Convert.ToInt32((lattice[i][j][2] - structSet.Image.Origin.z) / imageResZ);
-                    if (slice != oldSlice && !first)
-                    {
-                        arrayPoints = points.ToArray();
-                        optiStruct.AddContourOnImagePlane(arrayPoints, slice);
-                        points.Clear();
-                        oldSlice = slice;
-                    }
-                    else
-                    {
-                        points.Add(lattice[i][j]);
-                    }
-                    if (first)
-                    {
-                        first = false;
-                        oldSlice = slice;
-                    }
-                }
-                token.ThrowIfCancellationRequested();
-                this.Dispatcher.Invoke(() =>
-                {
-                    progressBar.Value = 75 + 20 * (double)i / (double)lattice.Count();
-                });
-            }
 
             //----- Step 5: Union of lattice and GTV -----\\
             if(eroded) optiStruct.SegmentVolume = gtvErode.SegmentVolume.And(optiStruct.SegmentVolume);
             else optiStruct.SegmentVolume = gtv.SegmentVolume.And(optiStruct.SegmentVolume);
+
+            //----- Step 6: Create Control Lattice Structure -----\\
+            Structure controlStruct = CreateStructureAndAddToSet("zLatticeControl", structSet, controlLattice);
+            token.ThrowIfCancellationRequested();
+            this.Dispatcher.Invoke(() =>
+            {
+                progressBar.Value = 95;
+            });
+
+            //----- Step 7: Union of lattice control and GTV -----\\
+            if (eroded) controlStruct.SegmentVolume = gtvErode.SegmentVolume.And(controlStruct.SegmentVolume);
+            else controlStruct.SegmentVolume = gtv.SegmentVolume.And(controlStruct.SegmentVolume);
 
             //----- Script complete -----\\
             this.Dispatcher.Invoke(() =>
@@ -700,25 +741,37 @@ namespace CreateGRIDTarget
         ///////////////////////////////////////////////////////////
         // CreateRodLattice
         ///////////////////////////////////////////////////////////
-        List<List<VVector>> CreateRodLattice(int nPts, LatticeCylinder cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord)
+        List<List<VVector>> CreateRodLattice(int nPts, LatticeCylinder cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, bool isControl=false, double controlCylRadius=0)
         {
             ///// FUTURE DIRECTIONS: /////
             // Add in rotation of coordinates before adding to points[iRod]
             //////////////////////////////
+
+            // TODO:
+            // Modify to support control structures
+            // - Offset central point by a diagonal and then repeat procedure
+            // - Will need boolean as fn argument isControl to signal to the function to handle this, make 2nd to last arguement, default false
+            // - Will need controlCyl as optional arguement, make last arguement, default null?
 
             List<List<VVector>> points = new List<List<VVector>>();
             bool first = true;
 
             double zStart = bbStartCoord[2] - bbSpacingCoord[2];
             double zEnd = bbEndCoord[2] + bbSpacingCoord[2];
+            double xStart = bbCenterCoord[0];
+            double yStart = bbCenterCoord[1];
+            double r = cyl.radius;
+            if (isControl)
+            {
+                xStart += cyl.radius + latticeSeparation / 2.0;
+                yStart += cyl.radius + latticeSeparation / 2.0;
+                r = controlCylRadius;
+            }
+
+
 
             for (double z = zStart; z <= zEnd; z += bbSpacingCoord[2])
             {
-                this.Dispatcher.Invoke(() =>
-                {
-                    progressBar.Value = 10 + Math.Abs(65 * (z - zStart) / (zEnd - zStart));
-                });
-
                 int iRod = -1;
 
                 //----- Central rod points and Rods in +X -----\\
@@ -729,7 +782,7 @@ namespace CreateGRIDTarget
                     iRod++;
                     if (first) points.Add(new List<VVector>());
 
-                    double testMaxX = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                    double testMaxX = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r;
                     if (testMaxX > bbEndCoord[0])
                     {
                         withinX = false;
@@ -737,8 +790,8 @@ namespace CreateGRIDTarget
                     }
                     for (int i = 0; i < nPts; i++)
                     {
-                        double x = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
-                        double y = bbCenterCoord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                        double x = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                        double y = yStart + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
                         points[iRod].Add(new VVector(x, y, z));
                     }
 
@@ -750,7 +803,7 @@ namespace CreateGRIDTarget
                         iRod++;
                         if (first) points.Add(new List<VVector>());
 
-                        double test_max_y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                        double test_max_y = yStart + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r;
                         if (test_max_y > bbEndCoord[1])
                         {
                             withinY = false;
@@ -758,8 +811,8 @@ namespace CreateGRIDTarget
                         }
                         for (int i = 0; i < nPts; i++)
                         {
-                            double x = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
-                            double y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            double x = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = yStart + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
                             points[iRod].Add(new VVector(x, y, z));
                         }
                         rodCountY++;
@@ -773,7 +826,7 @@ namespace CreateGRIDTarget
                         iRod++;
                         if (first) points.Add(new List<VVector>());
 
-                        double testMinY = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                        double testMinY = yStart - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) - r;
                         if (testMinY < bbStartCoord[1])
                         {
                             withinY = false;
@@ -781,8 +834,8 @@ namespace CreateGRIDTarget
                         }
                         for (int i = 0; i < nPts; i++)
                         {
-                            double x = bbCenterCoord[0] + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
-                            double y = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            double x = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = yStart - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
                             points[iRod].Add(new VVector(x, y, z));
                         }
                         rodCountY++;
@@ -800,7 +853,7 @@ namespace CreateGRIDTarget
                     iRod++;
                     if (first) points.Add(new List<VVector>());
 
-                    double testMinX = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                    double testMinX = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) - r;
                     if (testMinX < bbStartCoord[0])
                     {
                         withinX = false;
@@ -808,8 +861,8 @@ namespace CreateGRIDTarget
                     }
                     for (int i = 0; i < nPts; i++)
                     {
-                        double x = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
-                        double y = bbCenterCoord[1] + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                        double x = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                        double y = yStart + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
                         points[iRod].Add(new VVector(x, y, z));
                     }
 
@@ -821,7 +874,7 @@ namespace CreateGRIDTarget
                         iRod++;
                         if (first) points.Add(new List<VVector>());
 
-                        double test_max_y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius;
+                        double test_max_y = yStart + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r;
                         if (test_max_y > bbEndCoord[1])
                         {
                             withinY = false;
@@ -829,8 +882,8 @@ namespace CreateGRIDTarget
                         }
                         for (int i = 0; i < nPts; i++)
                         {
-                            double x = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
-                            double y = bbCenterCoord[1] + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            double x = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = yStart + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
                             points[iRod].Add(new VVector(x, y, z));
                         }
                         rodCountY++;
@@ -844,7 +897,7 @@ namespace CreateGRIDTarget
                         iRod++;
                         if (first) points.Add(new List<VVector>());
 
-                        double testMinY = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) - cyl.radius;
+                        double testMinY = yStart - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) - r;
                         if (testMinY < bbStartCoord[1])
                         {
                             withinY = false;
@@ -852,8 +905,8 @@ namespace CreateGRIDTarget
                         }
                         for (int i = 0; i < nPts; i++)
                         {
-                            double x = bbCenterCoord[0] - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
-                            double y = bbCenterCoord[1] - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + cyl.radius * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
+                            double x = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
+                            double y = yStart - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
                             points[iRod].Add(new VVector(x, y, z));
                         }
                         rodCountY++;
@@ -902,6 +955,68 @@ namespace CreateGRIDTarget
             return structName;
         }
 
+
+        ///////////////////////////////////////////////////////////
+        // CreateStructureAndAddToSet
+        ///////////////////////////////////////////////////////////
+        Structure CreateStructureAndAddToSet(string name, StructureSet structSet, List<List<VVector>> lattice)
+        {
+            Structure newStruct = null;
+
+            // Check if it exists first
+            string structName = CheckStructureIDs(name, structSet);
+            if (structName == "FAIL")
+            {
+                // Give up
+                message += "Unable to make " + name + " structure after 10 attempts. Please delete/rename structures and try again.\n";
+                this.Dispatcher.Invoke(() =>
+                {
+                    runButton.IsEnabled = true;
+                    abortButton.IsEnabled = false;
+                    messageTextBlock.Text = message;
+                    progressBar.Value = 0;
+                });
+                return null;
+            }
+            else
+            {
+                // Structure name not found in structure set, make it
+                newStruct = structSet.AddStructure("CONTROL", structName);
+            }
+
+            // Fill contour slice-by-slice
+            double imageResZ = structSet.Image.ZRes;
+            var points = new List<VVector>();
+            VVector[] arrayPoints;
+
+            for (int i = 0; i < lattice.Count(); i++)
+            {
+                int oldSlice = -1;
+                bool first = true;
+
+                for (int j = 0; j < lattice[i].Count(); j++)
+                {
+                    int slice = Convert.ToInt32((lattice[i][j][2] - structSet.Image.Origin.z) / imageResZ);
+                    if (slice != oldSlice && !first)
+                    {
+                        arrayPoints = points.ToArray();
+                        newStruct.AddContourOnImagePlane(arrayPoints, slice);
+                        points.Clear();
+                        oldSlice = slice;
+                    }
+                    else
+                    {
+                        points.Add(lattice[i][j]);
+                    }
+                    if (first)
+                    {
+                        first = false;
+                        oldSlice = slice;
+                    }
+                }
+            }
+            return newStruct;
+        }
 
         ///////////////////////////////////////////////////////////
         // ConstructAffineTransform

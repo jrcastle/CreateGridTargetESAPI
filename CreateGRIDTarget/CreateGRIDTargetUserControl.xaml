@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="400" d:DesignWidth="900"
+             d:DesignHeight="435" d:DesignWidth="900"
              Background="#fafafa" >
     <Grid>
         <Grid.RowDefinitions>
@@ -25,7 +25,7 @@
                 </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="205"></RowDefinition>
+                    <RowDefinition Height="240"></RowDefinition>
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0" Grid.Column="0">
                     <Label VerticalAlignment="Top" FontWeight="Bold" HorizontalAlignment="Left">Configuration</Label>
@@ -50,6 +50,8 @@
                             <RowDefinition Height="25"></RowDefinition>
                             <RowDefinition Height="5"></RowDefinition>
                             <RowDefinition Height="25"></RowDefinition>
+                            <RowDefinition Height="5"></RowDefinition>
+                            <RowDefinition Height="25"></RowDefinition>
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Grid.Column="0">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Right">Select GTV Structure:</Label>
@@ -58,27 +60,42 @@
                             <ComboBox x:Name="ComboBoxGTVList" Margin="15 0" Height="25" Width="195" ItemsSource="{Binding structureList}" SelectionChanged = "GTVSelectionChanged" HorizontalAlignment="Left"  VerticalAlignment="Center"></ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Diameter of Lattice:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Select Lattice Type:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="1">
-                            <TextBox x:Name="TextBox_LatticeDiameter" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeDiameter_Changed"></TextBox>
-                        </StackPanel>
-                        <StackPanel Grid.Row="2" Grid.Column="1">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
+                            <ComboBox x:Name="ComboBoxLatticeList" Margin="15 0" Height="25" Width="195" ItemsSource="{Binding latticeList}" SelectionChanged = "LatticeSelectionChanged" HorizontalAlignment="Left"  VerticalAlignment="Center"></ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Row="4" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Separation of Lattice:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Diameter of Lattice:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="4" Grid.Column="1">
-                            <TextBox x:Name="TextBox_LatticeSeparation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeSeparation_Changed"></TextBox>
+                            <TextBox x:Name="TextBox_LatticeDiameter" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeDiameter_Changed"></TextBox>
                         </StackPanel>
                         <StackPanel Grid.Row="4" Grid.Column="1">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="6" Grid.Column="0">
-                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">GTV Erode Margin:</Label>
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Separation of Lattice:</Label>
                         </StackPanel>
                         <StackPanel Grid.Row="6" Grid.Column="1">
+                            <TextBox x:Name="TextBox_LatticeSeparation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeSeparation_Changed"></TextBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="1">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">Diameter of Control:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="1">
+                            <TextBox x:Name="TextBox_ControlDiameter" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_ControlDiameter_Changed"></TextBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="1">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Left" Margin="89 0">mm</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="10" Grid.Column="0">
+                            <Label VerticalAlignment="Top" HorizontalAlignment="Right">GTV Erode Margin:</Label>
+                        </StackPanel>
+                        <StackPanel Grid.Row="10" Grid.Column="1">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="85"></ColumnDefinition>
@@ -114,19 +131,19 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <StackPanel Grid.Row="8" Grid.Column="0">
+                        <StackPanel Grid.Row="12" Grid.Column="0">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Right">Lattice Pattern Rotation:</Label>
                         </StackPanel>
-                        <StackPanel Grid.Row="8" Grid.Column="1">
+                        <StackPanel Grid.Row="12" Grid.Column="1">
                             <TextBox x:Name="TextBox_LatticeRotation" Margin="15 0" Height="25" Width="75" HorizontalAlignment="Left" VerticalContentAlignment="Center" TextChanged="TextBox_LatticeRotation_Changed"></TextBox>
                         </StackPanel>
-                        <StackPanel Grid.Row="8" Grid.Column="1">
+                        <StackPanel Grid.Row="12" Grid.Column="1">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Left" Width="100" Margin="89 0">Degrees</Label>
                         </StackPanel>
-                        <StackPanel Grid.Row="10" Grid.Column="0">
+                        <StackPanel Grid.Row="14" Grid.Column="0">
                             <Label VerticalAlignment="Top" HorizontalAlignment="Right">Lattice Pattern Shift:</Label>
                         </StackPanel>
-                        <StackPanel Grid.Row="10" Grid.Column="1">
+                        <StackPanel Grid.Row="14" Grid.Column="1">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="85"></ColumnDefinition>
@@ -190,7 +207,7 @@
                     <ProgressBar x:Name="progressBar" Minimum="0" Maximum="100" Value="0" Width="100" Height="10" Margin="10"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1">
-                    <Label HorizontalAlignment="Right" VerticalAlignment="Center">v1.0.0</Label>
+                    <Label x:Name="VersionLabel" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{Binding Path=version}"></Label>
                 </StackPanel>
             </Grid>
         </StackPanel>

@@ -4,8 +4,8 @@ using CreateGRIDTarget;
 using System.Reflection;
 using VMS.TPS.Common.Model.API;
 
-[assembly: AssemblyVersion("1.0.0.16")]
-[assembly: AssemblyFileVersion("1.0.0.16")]
+[assembly: AssemblyVersion("1.0.1.1")]
+[assembly: AssemblyFileVersion("1.0.1.1")]
 [assembly: AssemblyInformationalVersion("1.0")]
 [assembly: ESAPIScript(IsWriteable = true)]
 
@@ -56,7 +56,7 @@ namespace VMS.TPS
 
             //----- Step 3: Load UI -----\\
             window.Title = "Lattice Therapy";
-            window.Height = 400;
+            window.Height = 435;
             window.Width = 900;
             CreateGRIDTargetUserControl userControl = new CreateGRIDTargetUserControl(CT, struct_set);
             window.Content = userControl;
