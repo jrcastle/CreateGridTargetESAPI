@@ -4,8 +4,8 @@ using CreateGRIDTarget;
 using System.Reflection;
 using VMS.TPS.Common.Model.API;
 
-[assembly: AssemblyVersion("1.0.1.1")]
-[assembly: AssemblyFileVersion("1.0.1.1")]
+[assembly: AssemblyVersion("1.0.1.6")]
+[assembly: AssemblyFileVersion("1.0.1.6")]
 [assembly: AssemblyInformationalVersion("1.0")]
 [assembly: ESAPIScript(IsWriteable = true)]
 

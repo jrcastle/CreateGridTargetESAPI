@@ -689,8 +689,40 @@ namespace CreateGRIDTarget
             });
 
             //----- Step 5: Union of lattice and GTV -----\\
-            if(eroded) optiStruct.SegmentVolume = gtvErode.SegmentVolume.And(optiStruct.SegmentVolume);
-            else optiStruct.SegmentVolume = gtv.SegmentVolume.And(optiStruct.SegmentVolume);
+            if (eroded)
+            {
+                if (!gtvErode.IsHighResolution && gtvErode.CanConvertToHighResolution()) gtvErode.ConvertToHighResolution();
+                else if (!gtvErode.IsHighResolution && !gtvErode.CanConvertToHighResolution())
+                {
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        message += "Script is unable to convert GTV to high resolution. Please convert GTV to high resolution before running script.\nAborting ...\n";
+                        messageTextBlock.Text = message;
+                        runButton.IsEnabled = true;
+                        abortButton.IsEnabled = false;
+                        progressBar.Value = 0;
+                    });
+                    return;
+                }
+                optiStruct.SegmentVolume = gtvErode.SegmentVolume.And(optiStruct.SegmentVolume);
+            }
+            else
+            {
+                if (!gtv.IsHighResolution && gtv.CanConvertToHighResolution()) gtv.ConvertToHighResolution();
+                else if (!gtv.IsHighResolution && !gtv.CanConvertToHighResolution())
+                {
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        message += "Script is unable to convert GTV to high resolution. Please convert GTV to high resolution before running script.\nAborting ...\n";
+                        messageTextBlock.Text = message;
+                        runButton.IsEnabled = true;
+                        abortButton.IsEnabled = false;
+                        progressBar.Value = 0;
+                    });
+                    return;
+                }
+                optiStruct.SegmentVolume = gtv.SegmentVolume.And(optiStruct.SegmentVolume);
+            }
 
             //----- Step 6: Create Control Lattice Structure -----\\
             Structure controlStruct = CreateStructureAndAddToSet("zLatticeControl", structSet, controlLattice);
@@ -701,8 +733,40 @@ namespace CreateGRIDTarget
             });
 
             //----- Step 7: Union of lattice control and GTV -----\\
-            if (eroded) controlStruct.SegmentVolume = gtvErode.SegmentVolume.And(controlStruct.SegmentVolume);
-            else controlStruct.SegmentVolume = gtv.SegmentVolume.And(controlStruct.SegmentVolume);
+            if (eroded)
+            {
+                if (!gtvErode.IsHighResolution && gtvErode.CanConvertToHighResolution()) gtvErode.ConvertToHighResolution();
+                else if (!gtvErode.IsHighResolution && !gtvErode.CanConvertToHighResolution())
+                {
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        message += "Script is unable to convert GTV to high resolution. Please convert GTV to high resolution before running script.\nAborting ...\n";
+                        messageTextBlock.Text = message;
+                        runButton.IsEnabled = true;
+                        abortButton.IsEnabled = false;
+                        progressBar.Value = 0;
+                    });
+                    return;
+                }
+                controlStruct.SegmentVolume = gtvErode.SegmentVolume.And(controlStruct.SegmentVolume);
+            }
+            else
+            {
+                if (!gtv.IsHighResolution && gtv.CanConvertToHighResolution()) gtv.ConvertToHighResolution();
+                else if (!gtv.IsHighResolution && !gtv.CanConvertToHighResolution())
+                {
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        message += "Script is unable to convert GTV to high resolution. Please convert GTV to high resolution before running script.\nAborting ...\n";
+                        messageTextBlock.Text = message;
+                        runButton.IsEnabled = true;
+                        abortButton.IsEnabled = false;
+                        progressBar.Value = 0;
+                    });
+                    return;
+                }
+                controlStruct.SegmentVolume = gtv.SegmentVolume.And(controlStruct.SegmentVolume);
+            }
 
             //----- Script complete -----\\
             this.Dispatcher.Invoke(() =>
@@ -1015,6 +1079,9 @@ namespace CreateGRIDTarget
                     }
                 }
             }
+
+            // Make high resolution
+            newStruct.ConvertToHighResolution();
             return newStruct;
         }
 
