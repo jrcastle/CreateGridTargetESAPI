@@ -13,8 +13,8 @@
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <Image Source="pack://application:,,,/CreateLatticeTarget.esapi;component/Resources/Logo2.png" 
-               Height="75"
+            <Image Source="pack://application:,,,/CreateLatticeTarget.esapi;component/Resources/Logo3.png" 
+               Height="65"
                />
         </StackPanel>
         <StackPanel Margin="10" Grid.Row="1">
