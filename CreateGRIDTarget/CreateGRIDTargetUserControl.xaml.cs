@@ -15,9 +15,9 @@ using VMS.TPS.Common.Model.Types;
 namespace CreateGRIDTarget
 {
     ////////////////////////////////////////////////
-    // LatticeCylinder
+    // LatticeObject
     ////////////////////////////////////////////////
-    public class LatticeCylinder
+    public class LatticeObject
     {
         public Vector3D orientation { get; set; }
         public double radius { get; set; }
@@ -69,6 +69,14 @@ namespace CreateGRIDTarget
             // Blank message to start
             message = "";
 
+            // Make list of possible lattice types
+            latticeList = new ObservableCollection<string>();
+            latticeList.Add("Cylinders");
+            latticeList.Add("Spheres");
+            ComboBoxLatticeList.ItemsSource = latticeList;
+            ComboBoxLatticeList.SelectedIndex = 0;
+            latticeType = "Cylinders";
+
             // Initialize parameters, but don't update UI
             // CheckRunIsReady will look for these values specifically
             // To know if it should enable the run button or not
@@ -103,14 +111,6 @@ namespace CreateGRIDTarget
                 structureList.Add(s.Id.ToString());
             }
             ComboBoxGTVList.ItemsSource = structureList;
-
-            // Make list of possible lattice types
-            latticeList = new ObservableCollection<string>();
-            latticeList.Add("Cylinders");
-            latticeList.Add("Spheres");
-            ComboBoxLatticeList.ItemsSource = latticeList;
-            ComboBoxLatticeList.SelectedIndex = 0;
-            latticeType = "Cylinders";
 
             this.DataContext = this;
 
@@ -401,10 +401,10 @@ namespace CreateGRIDTarget
                     message += "Cannot have negative Grid Separation.\n";
                     messageTextBlock.Text = message;
                 }
-                if (latticeType == "Spheres" || latticeType == "")
+                if (latticeType != "Spheres" && latticeType != "Cylinders")
                 {
                     ready = false;
-                    message += "Sphere lattice structures are not supported at this time.\n";
+                    message += "Unsupported lattice type, please inspect choice ...\n";
                     messageTextBlock.Text = message;
                 }
                 if (!structureList.Contains(gtvStructureName))
@@ -632,53 +632,46 @@ namespace CreateGRIDTarget
 
             //----- Step 3: Create lattice object and orient in the +z direction -----\\
             int nPts = 360;
+            double zRes = structSet.Image.ZRes;
             List<List<VVector>> lattice = null;
             List<List<VVector>> controlLattice = null;
-            if (latticeType == "Cylinders")
-            {
-                LatticeCylinder cyl = new LatticeCylinder();
-                cyl.radius = latticeDiameter / 2.0;
-                cyl.separation = latticeSeparation;
-                cyl.orientation = cyl.orientation = new Vector3D(0, 0, 1);
-                double controlCylRadius = controlDiameter / 2.0;
+            
+            LatticeObject latticeObj = new LatticeObject();
+            latticeObj.radius = latticeDiameter / 2.0;
+            latticeObj.separation = latticeSeparation;
+            latticeObj.orientation = latticeObj.orientation = new Vector3D(0, 0, 1);
+            double controlRadius = controlDiameter / 2.0;
 
-                // Opti structure
-                this.Dispatcher.Invoke(() =>
-                {
-                    message += "Creating optimization lattice ...\n";
-                    messageTextBlock.Text = message;
-                });
-                await Task.Run(() =>
-                {
-                    lattice = CreateRodLattice(nPts, cyl, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord);
-                });
-
-                // Control Structure
-                this.Dispatcher.Invoke(() =>
-                {
-                    progressBar.Value = 33;
-                    message += "Creating control lattice ...\n";
-                    messageTextBlock.Text = message;
-                });
-                await Task.Run(() =>
-                {
-                    controlLattice = CreateRodLattice(nPts, cyl, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, true, controlCylRadius);
-                });
-                this.Dispatcher.Invoke(() =>
-                {
-                    progressBar.Value = 66;
-                });
-            }
-            else if (latticeType == "Spheres")
+            // Opti structure
+            this.Dispatcher.Invoke(() =>
             {
-                // TODO: Implement this
-                this.Dispatcher.Invoke(() =>
-                {
-                    message += "Spheres not supported at this time. Aborting ...\n";
-                    messageTextBlock.Text = message;
-                });
-                return;
-            }
+                message += "Creating optimization lattice ...\n";
+                messageTextBlock.Text = message;
+            });
+            await Task.Run(() =>
+            {
+                if (latticeType == "Cylinders") lattice = CreateRodLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord);
+                else if(latticeType == "Spheres") lattice = CreateSphereLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, zRes);
+            });
+
+            // Control Structure
+            this.Dispatcher.Invoke(() =>
+            {
+                progressBar.Value = 33;
+                message += "Creating control lattice ...\n";
+                messageTextBlock.Text = message;
+            });
+            await Task.Run(() =>
+            {
+                if (latticeType == "Cylinders") controlLattice = CreateRodLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, true, controlRadius);
+                else if (latticeType == "Spheres") controlLattice = CreateSphereLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, zRes, true, controlRadius);
+            });
+            this.Dispatcher.Invoke(() =>
+            {
+                progressBar.Value = 66;
+            });
+            
+            
 
             //----- Step 4: Create Optimization Structure -----\\
             Structure optiStruct = CreateStructureAndAddToSet("zLatticeOpti", structSet, lattice);
@@ -805,7 +798,7 @@ namespace CreateGRIDTarget
         ///////////////////////////////////////////////////////////
         // CreateRodLattice
         ///////////////////////////////////////////////////////////
-        List<List<VVector>> CreateRodLattice(int nPts, LatticeCylinder cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, bool isControl=false, double controlCylRadius=0)
+        List<List<VVector>> CreateRodLattice(int nPts, LatticeObject cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, bool isControl=false, double controlCylRadius=0)
         {
             ///// FUTURE DIRECTIONS: /////
             // Add in rotation of coordinates before adding to points[iRod]
@@ -979,7 +972,158 @@ namespace CreateGRIDTarget
                     rodCountX++;
                 }
 
-                first = false;
+                if (first) first = false;
+            }
+
+            return points;
+        }
+
+
+        ///////////////////////////////////////////////////////////
+        // CreateSphereLattice
+        ///////////////////////////////////////////////////////////
+        List<List<VVector>> CreateSphereLattice(int nPts, LatticeObject sph, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, double zRes, bool isControl = false, double controlSphRadius = 0)
+        {
+            ///// FUTURE DIRECTIONS: /////
+            // Add in rotation of coordinates before adding to points[iRod]
+            //////////////////////////////
+            List<List<VVector>> points = new List<List<VVector>>();
+            double zStart = bbStartCoord[2];
+            double zEnd = bbEndCoord[2] + bbSpacingCoord[2];
+            double zStep = 2.0 * sph.radius + latticeSeparation;
+            double xStart = bbCenterCoord[0];
+            double yStart = bbCenterCoord[1];
+            double r = sph.radius;
+            if (isControl)
+            {
+                // Upcomming for loop will be symmetric and only check positive borders of bounding box.
+                // Offset the starting point in the minus direction, so we don't accitdentally miss any
+                // spheres at the negative border of the bounding box
+                xStart -= sph.radius + latticeSeparation / 2.0;
+                yStart -= sph.radius + latticeSeparation / 2.0;
+
+                // Offset zStart by sphere radius + lattice separation / 2, extend zEnd to account for 
+                // this offset and not potentially miss spheres at the -Z border of the bounding box
+                zStart += sph.radius + latticeSeparation / 2.0;
+                zEnd += zStep;
+                r = controlSphRadius;
+            }
+
+
+            // Start at Center of bounding box in Z, then iterate outward symmetrically
+            bool first = true;
+            int iSph = -1;
+            for (double z = zStart; z < zEnd; z += zStep)
+            {
+                // Starting from central point, so symmetric in x, y, and z.
+                // We will take advantage of this to clean up the code
+                bool withinX = true;
+                int sphCountX = 0;
+                while (withinX)
+                {
+                    //----- Central sphere and spheres in +/-X -----\\
+                    double testMaxX = xStart + (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r;
+                    if (testMaxX > bbEndCoord[0])
+                    {
+                        withinX = false;
+                        //break; // remove this if you want the rod to exceed the bounding box
+                    }
+                    if (first)
+                    {
+                        iSph++;
+                        points.Add(new List<VVector>());
+                    }
+                    else
+                    {
+                        iSph += 4;
+                        for (int i = 0; i < 4; i++) points.Add(new List<VVector>());
+                    }
+                    for (double z2 = z - r; z2 <= z + r; z2 += zRes)
+                    {
+                        double sinTheta = Math.Sin(Math.Acos((z - z2) / r));
+                        for (int i = 0; i < nPts; i++)
+                        {
+                            // Add sphere in +X
+                            double x = xStart + (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                            double y = yStart + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                            // if first, then we're adding only the center point, use iSph
+                            // else, we're doing symmetric addition of spheres in X and Z, so iSph is incremented by four/
+                            if (first) points[iSph].Add(new VVector(x, y, z2));
+                            else
+                            {
+                                points[iSph - 3].Add(new VVector(x, y, z2));
+
+                                // For this value of +X, add sphere in -Z
+                                double mz2 = 2.0 * zStart - 2.0 * z + z2; // Note: I used some "clever" algebra to derive this
+                                points[iSph - 2].Add(new VVector(x, y, mz2));
+
+                                // Add sphere in -X
+                                x = xStart - (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                points[iSph - 1].Add(new VVector(x, y, z2));
+
+                                // For this Value of -X, add sphere in -Z
+                                points[iSph].Add(new VVector(x, y, mz2));
+                            }
+                        }
+                    }
+
+                    //----- For this value of X, add spheres in +/-Y -----\\
+                    bool withinY = true;
+                    int sphCountY = 1;
+                    while (withinY)
+                    {
+                        //----- Central sphere and spheres in +/-X -----\\
+                        double testMaxY = yStart + (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r;
+                        if (testMaxY > bbEndCoord[1])
+                        {
+                            withinY = false;
+                            //break; // remove this if you want the rod to exceed the bounding box
+                        }
+                        // Central point already added, so increment iSph by eight
+                        iSph += 8;
+                        for (int i = 0; i < 8; i++) points.Add(new List<VVector>());
+                        for (double z2 = z - r ; z2 <= z + r; z2 += zRes)
+                        {
+                            double sinTheta = Math.Sin(Math.Acos((z - z2) / r));
+                            for (int i = 0; i < nPts; i++)
+                            {
+                                // For this value of +X, add sphere in +Y
+                                double x = xStart + (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                double y = yStart + (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                points[iSph - 7].Add(new VVector(x, y, z2));
+
+                                // For this value of +X and +Y, add sphere in -Z
+                                double mz2 = 2.0 * zStart - 2.0 * z + z2; // Note: I used some "clever" algebra to derive this
+                                points[iSph - 6].Add(new VVector(x, y, mz2));
+
+                                // For this value of +X, Add sphere in -Y
+                                y = yStart - (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                points[iSph - 5].Add(new VVector(x, y, z2));
+
+                                // For this Value of +X and -Y, add sphere in -Z
+                                points[iSph - 4].Add(new VVector(x, y, mz2));
+
+                                // For this value of -X, add sphere in +Y
+                                x = xStart - (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                y = yStart + (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                points[iSph - 3].Add(new VVector(x, y, z2));
+
+                                // For this value of -X and +Y, add sphere in -Z
+                                points[iSph - 2].Add(new VVector(x, y, mz2));
+
+                                // For this value of -X, Add sphere in -Y
+                                y = yStart - (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
+                                points[iSph - 1].Add(new VVector(x, y, z2));
+
+                                // For this Value of -X and -Y, add sphere in -Z
+                                points[iSph].Add(new VVector(x, y, mz2));
+                            }
+                        }
+                        sphCountY++;
+                    }
+                    sphCountX++;
+                }
+                if(first) first = false;
             }
 
             return points;
