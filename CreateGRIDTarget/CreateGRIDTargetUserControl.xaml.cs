@@ -41,7 +41,9 @@ namespace CreateGRIDTarget
         public float latticeDiameter { get; set; }
         public float latticeSeparation { get; set; }
         public float controlDiameter { get; set; }
-        public float gridRotationDegrees { get; set; }
+        public float latticeRotationAboutXDegrees { get; set; }
+        public float latticeRotationAboutYDegrees { get; set; }
+        public float latticeRotationAboutZDegrees { get; set; }
         public List<float> gtvErodeMarginXYZ { get; set; }
         public List<float> latticePatternShiftXYZ { get; set; }
         public CancellationTokenSource cancellationToken { get; set; }
@@ -55,7 +57,7 @@ namespace CreateGRIDTarget
         ////////////////////////////////////////////////
         public CreateGRIDTargetUserControl(VMS.TPS.Common.Model.API.Image img, StructureSet ss)
         {
-            
+
             InitializeComponent();
 
             // Grab version for GUI
@@ -101,8 +103,12 @@ namespace CreateGRIDTarget
             TextBox_LatticeShiftY.Text = "0";
             TextBox_LatticeShiftZ.Text = "0";
 
-            gridRotationDegrees = 0;
-            TextBox_LatticeRotation.Text = "0";
+            latticeRotationAboutXDegrees = 0;
+            latticeRotationAboutYDegrees = 0;
+            latticeRotationAboutZDegrees = 0;
+            //TextBox_LatticeRotationX.Text = "0";
+            //TextBox_LatticeRotationY.Text = "0";
+            TextBox_LatticeRotationZ.Text = "0";
 
             // Make list of structures for dropdown
             structureList = new ObservableCollection<string>();
@@ -255,21 +261,58 @@ namespace CreateGRIDTarget
 
 
         ////////////////////////////////////////////////
-        // TextBox_LatticeRotation_Changed
+        // TextBox_LatticeRotationX_Changed
         ////////////////////////////////////////////////
-        private void TextBox_LatticeRotation_Changed(object sender, RoutedEventArgs e)
+        /*
+        private void TextBox_LatticeRotationX_Changed(object sender, RoutedEventArgs e)
         {
-            // TODO: Remove this when rotations implemented
-            message += "Warning: Lattice rotations are not enabled at this time. This feature will be implemented in the future.\n";
-            messageTextBlock.Text = message;
-
             try
             {
-                gridRotationDegrees = float.Parse(TextBox_LatticeRotation.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                latticeRotationAboutXDegrees = float.Parse(TextBox_LatticeRotationX.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
             }
             catch
             {
-                gridRotationDegrees = 8675309;
+                latticeRotationAboutXDegrees = 8675309;
+                message += "Lattice rotation input needs to be a number.\n";
+                messageTextBlock.Text = message;
+            }
+            CheckRunIsReady();
+        }
+        */
+
+        ////////////////////////////////////////////////
+        // TextBox_LatticeRotationY_Changed
+        ////////////////////////////////////////////////
+        /*
+        private void TextBox_LatticeRotationY_Changed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                latticeRotationAboutYDegrees = float.Parse(TextBox_LatticeRotationY.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+            }
+            catch
+            {
+                latticeRotationAboutYDegrees = 8675309;
+                message += "Lattice rotation input needs to be a number.\n";
+                messageTextBlock.Text = message;
+            }
+            CheckRunIsReady();
+        }
+        */
+
+
+        ////////////////////////////////////////////////
+        // TextBox_LatticeRotationZ_Changed
+        ////////////////////////////////////////////////
+        private void TextBox_LatticeRotationZ_Changed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                latticeRotationAboutZDegrees = float.Parse(TextBox_LatticeRotationZ.Text.ToString(), CultureInfo.InvariantCulture.NumberFormat);
+            }
+            catch
+            {
+                latticeRotationAboutZDegrees = 8675309;
                 message += "Lattice rotation input needs to be a number.\n";
                 messageTextBlock.Text = message;
             }
@@ -383,7 +426,9 @@ namespace CreateGRIDTarget
                 if (latticeDiameter == 8675309) ready = false;
                 if (latticeSeparation == 8675309) ready = false;
                 if (controlDiameter == 8675309) ready = false;
-                if (gridRotationDegrees == 8675309) ready = false;
+                if (latticeRotationAboutXDegrees == 8675309) ready = false;
+                if (latticeRotationAboutYDegrees == 8675309) ready = false;
+                if (latticeRotationAboutZDegrees == 8675309) ready = false;
                 for (int i = 0; i < 3; i++)
                 {
                     if (gtvErodeMarginXYZ[i] == 8675309) ready = false;
@@ -464,7 +509,7 @@ namespace CreateGRIDTarget
         ///////////////////////////////////////////////////////////
         private async void CreateGRIDTarget(CancellationToken token)
         {
-            
+
             token.ThrowIfCancellationRequested();
             this.Dispatcher.Invoke(() =>
             {
@@ -523,7 +568,7 @@ namespace CreateGRIDTarget
 
             //----- Step 2: Establish bounding box parameters -----\\
             System.Windows.Media.Media3D.Rect3D boundingBox;
-            if(eroded) boundingBox = gtvErode.MeshGeometry.Bounds;
+            if (eroded) boundingBox = gtvErode.MeshGeometry.Bounds;
             else boundingBox = gtv.MeshGeometry.Bounds;
 
             List<double> bbStartCoord = new List<double>(){
@@ -623,19 +668,20 @@ namespace CreateGRIDTarget
 
             ///// TODO: FUTURE DIRECTIONS /////
             // Apply user-specified rotations
-            /*
+
             // Will need to do some math here to figure out orientation matrix based on user angles...
-            Vector3D default_orientation = new Vector3D(0, 0, 1);
-            Matrix<double> rotation_matrix = Matrix3D.RotationTo(default_orientation, cyl.orientation);
+            //Vector3D default_orientation = new Vector3D(0, 0, 1);
+            //Matrix<double> rotation_matrix = Matrix3D.RotationTo(default_orientation, cyl.orientation);
+            Matrix<double> rotation_matrix = ConstructRotationMatrix(latticeRotationAboutXDegrees, latticeRotationAboutYDegrees, latticeRotationAboutZDegrees);
             Matrix<double> affine_transform = ConstructAffineTransform(rotation_matrix, bbCenterCoord);
-            */
+
 
             //----- Step 3: Create lattice object and orient in the +z direction -----\\
             int nPts = 360;
             double zRes = structSet.Image.ZRes;
             List<List<VVector>> lattice = null;
             List<List<VVector>> controlLattice = null;
-            
+
             LatticeObject latticeObj = new LatticeObject();
             latticeObj.radius = latticeDiameter / 2.0;
             latticeObj.separation = latticeSeparation;
@@ -650,8 +696,8 @@ namespace CreateGRIDTarget
             });
             await Task.Run(() =>
             {
-                if (latticeType == "Cylinders") lattice = CreateRodLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord);
-                else if(latticeType == "Spheres") lattice = CreateSphereLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, zRes);
+                if (latticeType == "Cylinders") lattice = CreateRodLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, affine_transform);
+                else if (latticeType == "Spheres") lattice = CreateSphereLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, affine_transform, zRes);
             });
 
             // Control Structure
@@ -663,15 +709,15 @@ namespace CreateGRIDTarget
             });
             await Task.Run(() =>
             {
-                if (latticeType == "Cylinders") controlLattice = CreateRodLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, true, controlRadius);
-                else if (latticeType == "Spheres") controlLattice = CreateSphereLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, zRes, true, controlRadius);
+                if (latticeType == "Cylinders") controlLattice = CreateRodLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, affine_transform, true, controlRadius);
+                else if (latticeType == "Spheres") controlLattice = CreateSphereLattice(nPts, latticeObj, bbStartCoord, bbEndCoord, bbSpacingCoord, bbCenterCoord, affine_transform, zRes, true, controlRadius);
             });
             this.Dispatcher.Invoke(() =>
             {
                 progressBar.Value = 66;
             });
-            
-            
+
+
 
             //----- Step 4: Create Optimization Structure -----\\
             Structure optiStruct = CreateStructureAndAddToSet("zLatticeOpti", structSet, lattice);
@@ -798,19 +844,15 @@ namespace CreateGRIDTarget
         ///////////////////////////////////////////////////////////
         // CreateRodLattice
         ///////////////////////////////////////////////////////////
-        List<List<VVector>> CreateRodLattice(int nPts, LatticeObject cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, bool isControl=false, double controlCylRadius=0)
+        List<List<VVector>> CreateRodLattice(int nPts, LatticeObject cyl, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, Matrix<double> affine_transform, bool isControl = false, double controlCylRadius = 0)
         {
-            ///// FUTURE DIRECTIONS: /////
-            // Add in rotation of coordinates before adding to points[iRod]
-            //////////////////////////////
-
-            // TODO:
-            // Modify to support control structures
-            // - Offset central point by a diagonal and then repeat procedure
-            // - Will need boolean as fn argument isControl to signal to the function to handle this, make 2nd to last arguement, default false
-            // - Will need controlCyl as optional arguement, make last arguement, default null?
-
+            // Initialize vvectors to be returned
             List<List<VVector>> points = new List<List<VVector>>();
+
+            // Initialize 3D vectors for before/after rotations
+            Vector<double> vAfter;
+
+            // Setup parameters for looping over z coords
             bool first = true;
 
             double zStart = bbStartCoord[2] - bbSpacingCoord[2];
@@ -825,8 +867,7 @@ namespace CreateGRIDTarget
                 r = controlCylRadius;
             }
 
-
-
+            // Loop over Z dimension of bounding box
             for (double z = zStart; z <= zEnd; z += bbSpacingCoord[2])
             {
                 int iRod = -1;
@@ -849,7 +890,8 @@ namespace CreateGRIDTarget
                     {
                         double x = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
                         double y = yStart + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
-                        points[iRod].Add(new VVector(x, y, z));
+                        vAfter = ApplyAffineTransform(affine_transform, x, y, z);
+                        points[iRod].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                     }
 
                     //----- For this value of +X, add rods in +Y -----\\
@@ -870,7 +912,8 @@ namespace CreateGRIDTarget
                         {
                             double x = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
                             double y = yStart + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
-                            points[iRod].Add(new VVector(x, y, z));
+                            vAfter = ApplyAffineTransform(affine_transform, x, y, z);
+                            points[iRod].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                         }
                         rodCountY++;
                     }
@@ -893,7 +936,8 @@ namespace CreateGRIDTarget
                         {
                             double x = xStart + (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
                             double y = yStart - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
-                            points[iRod].Add(new VVector(x, y, z));
+                            vAfter = ApplyAffineTransform(affine_transform, x, y, z);
+                            points[iRod].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                         }
                         rodCountY++;
                     }
@@ -920,7 +964,8 @@ namespace CreateGRIDTarget
                     {
                         double x = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
                         double y = yStart + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
-                        points[iRod].Add(new VVector(x, y, z));
+                        vAfter = ApplyAffineTransform(affine_transform, x, y, z);
+                        points[iRod].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                     }
 
                     //----- For this value of -X, add rods in +Y -----\\
@@ -941,7 +986,8 @@ namespace CreateGRIDTarget
                         {
                             double x = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
                             double y = yStart + (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
-                            points[iRod].Add(new VVector(x, y, z));
+                            vAfter = ApplyAffineTransform(affine_transform, x, y, z);
+                            points[iRod].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                         }
                         rodCountY++;
                     }
@@ -964,7 +1010,8 @@ namespace CreateGRIDTarget
                         {
                             double x = xStart - (double)rodCountX * (2.0 * cyl.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts);
                             double y = yStart - (double)rodCountY * (2.0 * cyl.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts);
-                            points[iRod].Add(new VVector(x, y, z));
+                            vAfter = ApplyAffineTransform(affine_transform, x, y, z);
+                            points[iRod].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                         }
                         rodCountY++;
                     }
@@ -982,12 +1029,16 @@ namespace CreateGRIDTarget
         ///////////////////////////////////////////////////////////
         // CreateSphereLattice
         ///////////////////////////////////////////////////////////
-        List<List<VVector>> CreateSphereLattice(int nPts, LatticeObject sph, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, double zRes, bool isControl = false, double controlSphRadius = 0)
+        List<List<VVector>> CreateSphereLattice(int nPts, LatticeObject sph, List<double> bbStartCoord, List<double> bbEndCoord, List<double> bbSpacingCoord, List<double> bbCenterCoord, Matrix<double> affine_transform, double zRes, bool isControl = false, double controlSphRadius = 0)
         {
-            ///// FUTURE DIRECTIONS: /////
-            // Add in rotation of coordinates before adding to points[iRod]
-            //////////////////////////////
+
+            // Initialize vvectors to be returned
             List<List<VVector>> points = new List<List<VVector>>();
+
+            // Initialize 3D vectors for before/after rotations
+            Vector<double> vAfter;
+
+            // Setup parameters for looping over z coords
             double zStart = bbStartCoord[2];
             double zEnd = bbEndCoord[2] + bbSpacingCoord[2];
             double zStep = 2.0 * sph.radius + latticeSeparation;
@@ -1047,22 +1098,26 @@ namespace CreateGRIDTarget
                             double x = xStart + (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
                             double y = yStart + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
                             // if first, then we're adding only the center point, use iSph
-                            // else, we're doing symmetric addition of spheres in X and Z, so iSph is incremented by four/
-                            if (first) points[iSph].Add(new VVector(x, y, z2));
+                            // else, we're doing symmetric addition of spheres in X and Z, so iSph is incremented by four
+                            vAfter = ApplyAffineTransform(affine_transform, x, y, z2);
+                            if (first) points[iSph].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                             else
                             {
-                                points[iSph - 3].Add(new VVector(x, y, z2));
+                                points[iSph -3].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this value of +X, add sphere in -Z
                                 double mz2 = 2.0 * zStart - 2.0 * z + z2; // Note: I used some "clever" algebra to derive this
-                                points[iSph - 2].Add(new VVector(x, y, mz2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, mz2);
+                                points[iSph - 2].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // Add sphere in -X
                                 x = xStart - (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
-                                points[iSph - 1].Add(new VVector(x, y, z2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, z2);
+                                points[iSph - 1].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this Value of -X, add sphere in -Z
-                                points[iSph].Add(new VVector(x, y, mz2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, mz2);
+                                points[iSph].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                             }
                         }
                     }
@@ -1082,7 +1137,7 @@ namespace CreateGRIDTarget
                         // Central point already added, so increment iSph by eight
                         iSph += 8;
                         for (int i = 0; i < 8; i++) points.Add(new List<VVector>());
-                        for (double z2 = z - r ; z2 <= z + r; z2 += zRes)
+                        for (double z2 = z - r; z2 <= z + r; z2 += zRes)
                         {
                             double sinTheta = Math.Sin(Math.Acos((z - z2) / r));
                             for (int i = 0; i < nPts; i++)
@@ -1090,40 +1145,48 @@ namespace CreateGRIDTarget
                                 // For this value of +X, add sphere in +Y
                                 double x = xStart + (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
                                 double y = yStart + (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
-                                points[iSph - 7].Add(new VVector(x, y, z2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, z2);
+                                points[iSph - 7].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this value of +X and +Y, add sphere in -Z
                                 double mz2 = 2.0 * zStart - 2.0 * z + z2; // Note: I used some "clever" algebra to derive this
-                                points[iSph - 6].Add(new VVector(x, y, mz2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, mz2);
+                                points[iSph - 6].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this value of +X, Add sphere in -Y
                                 y = yStart - (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
-                                points[iSph - 5].Add(new VVector(x, y, z2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, z2);
+                                points[iSph - 5].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this Value of +X and -Y, add sphere in -Z
-                                points[iSph - 4].Add(new VVector(x, y, mz2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, mz2);
+                                points[iSph - 4].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this value of -X, add sphere in +Y
                                 x = xStart - (double)sphCountX * (2.0 * sph.radius + latticeSeparation) + r * Math.Cos((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
                                 y = yStart + (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
-                                points[iSph - 3].Add(new VVector(x, y, z2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, z2);
+                                points[iSph - 3].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this value of -X and +Y, add sphere in -Z
-                                points[iSph - 2].Add(new VVector(x, y, mz2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, mz2);
+                                points[iSph - 2].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this value of -X, Add sphere in -Y
                                 y = yStart - (double)sphCountY * (2.0 * sph.radius + latticeSeparation) + r * Math.Sin((double)i * 2.0 * Math.PI / (double)nPts) * sinTheta;
-                                points[iSph - 1].Add(new VVector(x, y, z2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, z2);
+                                points[iSph - 1].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
 
                                 // For this Value of -X and -Y, add sphere in -Z
-                                points[iSph].Add(new VVector(x, y, mz2));
+                                vAfter = ApplyAffineTransform(affine_transform, x, y, mz2);
+                                points[iSph].Add(new VVector(vAfter[0], vAfter[1], vAfter[2]));
                             }
                         }
                         sphCountY++;
                     }
                     sphCountX++;
                 }
-                if(first) first = false;
+                if (first) first = false;
             }
 
             return points;
@@ -1201,7 +1264,7 @@ namespace CreateGRIDTarget
             {
                 int oldSlice = -1;
                 bool first = true;
-
+                //lattice[i] = lattice[i].OrderBy(arr => arr.z).ToList();
                 for (int j = 0; j < lattice[i].Count(); j++)
                 {
                     int slice = Convert.ToInt32((lattice[i][j][2] - structSet.Image.Origin.z) / imageResZ);
@@ -1229,6 +1292,30 @@ namespace CreateGRIDTarget
             return newStruct;
         }
 
+
+        ///////////////////////////////////////////////////////////
+        // ConstructRotationMatrix
+        ///////////////////////////////////////////////////////////
+        Matrix<double> ConstructRotationMatrix(double rX, double rY, double rZ)
+        {
+            double sG = Math.Sin(rX * Math.PI / 180.0);
+            double cG = Math.Cos(rX * Math.PI / 180.0);
+            double sB = Math.Sin(rY * Math.PI / 180.0);
+            double cB = Math.Cos(rY * Math.PI / 180.0);
+            double sA = Math.Sin(rZ * Math.PI / 180.0);
+            double cA = Math.Cos(rZ * Math.PI / 180.0);
+
+            double[,] m = new double[,] {
+                { cA*cB,   cA*sB*sG - sA*cG, cA*sB*cG + sA*sG},
+                { sA*cB,   sA*sB*sG + cA*cG, sA*sB*cG - cA*sG},
+                { -sB,     cB*sG,            cB*cG}
+            };
+            Matrix<double> rotMat = Matrix<double>.Build.DenseOfArray(m);
+            return rotMat;
+        }
+
+
+
         ///////////////////////////////////////////////////////////
         // ConstructAffineTransform
         ///////////////////////////////////////////////////////////
@@ -1244,6 +1331,17 @@ namespace CreateGRIDTarget
             };
             Matrix<double> affineTransform = Matrix<double>.Build.DenseOfArray(t);
             return affineTransform;
+        }
+
+
+        ///////////////////////////////////////////////////////////
+        // ApplyAffineTransform
+        ///////////////////////////////////////////////////////////
+        Vector<double> ApplyAffineTransform(Matrix<double> A, double x, double y, double z)
+        {
+            Vector<double> v = Vector<double>.Build.DenseOfArray(new double[] { x, y, z, 1 });
+            Vector<double> t = A * v;
+            return t;
         }
     }
 }
